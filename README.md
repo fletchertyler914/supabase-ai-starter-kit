@@ -74,19 +74,17 @@ docker compose --profile gpu-amd up
 
 ### 🤖 **Instant AI Chatbots**
 
-Two pre-loaded workflows that work immediately:
+One unified workflow that works with both local and Docker Ollama setups:
 
-- **"Local Ollama Chat (Macbook)"**
-- **"Self Hosted Ollama Chat"**
+- **"Ollama Chat"** - Automatically detects and works with your Ollama configuration
 
-**Direct Chat Links** (available after running the stack):
+**Direct Chat Link** (available after running the stack):
 
-- **MacBook Ollama**: [http://localhost:5678/webhook/ba65d0a2-7d1d-4efe-9e7a-c41b1031e3bb/chat](http://localhost:5678/webhook/ba65d0a2-7d1d-4efe-9e7a-c41b1031e3bb/chat)
-- **Docker Ollama**: [http://localhost:5678/webhook/d1433448-02fc-44cd-9512-63941e7c4973/chat](http://localhost:5678/webhook/d1433448-02fc-44cd-9512-63941e7c4973/chat)
+- **Chat Interface**: [http://localhost:5678/webhook/ba65d0a2-7d1d-4efe-9e7a-c41b1031e3bb/chat](http://localhost:5678/webhook/ba65d0a2-7d1d-4efe-9e7a-c41b1031e3bb/chat)
 
-> ✨ **Workflows are automatically activated!** The chat links work immediately after startup.
+> ✨ **Workflow is automatically activated!** The chat link works immediately after startup.
 
-> ✨ **Workflow changes auto-save!** Modify workflows in the n8n UI and they persist automatically.
+> ✨ **Workflow changes auto-save!** Modify the workflow in the n8n UI and it persists automatically.
 
 ### ⚡ **Vector Search Ready**
 
