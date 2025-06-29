@@ -52,9 +52,10 @@ x-init-ollama: &init-ollama
   entrypoint: /bin/sh
   environment:
     - OLLAMA_HOST=ollama:11434
+    - OLLAMA_DEFAULT_MODELS=${OLLAMA_DEFAULT_MODELS:-llama3.2:3b}
   command:
     - '-c'
-    - 'sleep 3; ollama pull llama3.2'
+    - 'sleep 3; echo "Pulling models: $$OLLAMA_DEFAULT_MODELS"; IFS=","; for model in $$OLLAMA_DEFAULT_MODELS; do model=$$(echo "$$model" | sed "s/^[[:space:]]*//;s/[[:space:]]*$$//"); if [ -n "$$model" ]; then echo "Pulling: $$model"; ollama pull "$$model" || exit 1; fi; done; echo "All models pulled successfully"'
 
 services:
   studio:
@@ -671,7 +672,7 @@ services:
       - ollama-gpu
 
   ollama-pull-llama-gpu-amd:
-    profiles: [gpu-amd]
+    profiles: ['gpu-amd']
     <<: *init-ollama
     image: ollama/ollama:rocm
     depends_on:
@@ -680,4 +681,3 @@ services:
 volumes:
   db-config:
   ollama_storage:
-  # n8n_storage: # No longer needed - using direct mount
