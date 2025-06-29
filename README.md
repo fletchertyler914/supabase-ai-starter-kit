@@ -135,6 +135,17 @@ Unlike traditional setups with PostgreSQL + Qdrant + separate auth services:
 - **Auto-generated APIs** (REST + GraphQL)
 - **Row Level Security** for multi-tenant apps
 
+## Contributing
+
+**We'd love your help making this even better!** 🙌
+
+- **Found a bug?** [Open an issue](https://github.com/fletchertyler914/supabase-ai-starter-kit/issues)
+- **Have an idea?** [Start a discussion](https://github.com/fletchertyler914/supabase-ai-starter-kit/discussions) or submit a PR
+- **Built something cool?** Share your workflows and demos
+- **Improved the docs?** Documentation PRs are always welcome
+
+Whether you're fixing typos, adding features, or sharing workflows - every contribution makes this better for the community.
+
 ## Community & Support
 
 Built with ❤️ by developers, for developers.
