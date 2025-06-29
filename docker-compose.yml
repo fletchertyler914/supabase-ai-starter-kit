@@ -50,7 +50,7 @@ x-ollama: &service-ollama
 
 x-init-ollama: &init-ollama
   image: ollama/ollama:latest
-  container_name: ollama-pull-llama
+  container_name: ollama-init
   networks:
     - supastar
   volumes:
@@ -642,21 +642,21 @@ services:
     # supavisor:
     #   condition: service_healthy
 
-  ollama-pull-llama-cpu:
+  ollama-init-cpu:
     profiles: ['cpu']
     <<: *init-ollama
     depends_on:
       ollama-cpu:
         condition: service_started
 
-  ollama-pull-llama-gpu:
+  ollama-init-gpu:
     profiles: ['gpu-nvidia']
     <<: *init-ollama
     depends_on:
       ollama-gpu:
         condition: service_started
 
-  ollama-pull-llama-gpu-amd:
+  ollama-init-gpu-amd:
     profiles: ['gpu-amd']
     <<: *init-ollama
     image: ollama/ollama:rocm

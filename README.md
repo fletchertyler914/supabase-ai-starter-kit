@@ -132,6 +132,30 @@ OLLAMA_HOST=host.docker.internal:11434
 # No env var needed
 ```
 
+### Adding More Ollama Models
+
+**Before starting containers** (add to `.env` file):
+
+```bash
+# Comma-separated list of models to pull automatically
+# Default: llama3.2:1b,nomic-embed-text
+OLLAMA_DEFAULT_MODELS=llama3.2:1b,nomic-embed-text,llama3.2:3b,codellama:7b
+```
+
+**After containers are running:**
+
+```bash
+# Pull additional models manually
+docker exec ollama-cpu ollama pull llama3.2:3b
+docker exec ollama-cpu ollama pull codellama:7b
+
+# Or for GPU containers
+docker exec ollama-gpu ollama pull llama3.2:3b
+
+# List available models
+docker exec ollama-cpu ollama list
+```
+
 ### First-Time Setup
 
 When you first access n8n at [localhost:5678](http://localhost:5678), you'll need to create an owner account. This is a one-time setup - just provide an email and password to get started.
