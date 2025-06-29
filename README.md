@@ -8,83 +8,111 @@ An open-source Docker Compose template that gets you from idea to AI-powered app
 ![n8n](https://img.shields.io/badge/n8n-EA4B71?style=for-the-badge&logo=n8n&logoColor=white)
 ![Ollama](https://img.shields.io/badge/ollama-000000?style=for-the-badge&logoColor=white)
 
-## What's Inside 🚀
+Inspired by the [n8n AI starter kit](https://github.com/n8n-io/self-hosted-ai-starter-kit), but supercharged with Supabase's complete backend platform.
 
-- **[Supabase](https://supabase.com/)** - PostgreSQL + Auth + Realtime + Edge Functions + pgvector
-- **[n8n](https://n8n.io/)** - Visual workflow automation with 400+ integrations
-- **[Ollama](https://ollama.com/)** - Local LLMs that actually work
-- **Pre-built AI chatbots** - Ready to use, zero configuration required
+## What's included
 
-## Quick Start
+✅ **[Supabase](https://supabase.com/)** - PostgreSQL + Auth + Realtime + Edge Functions + pgvector  
+✅ **[n8n](https://n8n.io/)** - Visual workflow automation with 400+ integrations  
+✅ **[Ollama](https://ollama.com/)** - Local LLMs that actually work in production  
+✅ **Pre-built AI chatbots** - Ready to use, zero configuration required
 
-### 1. Get the code:
+## What you can build
+
+⭐️ **AI-powered customer support** with your company docs  
+⭐️ **Smart document processing** workflows that never leak data  
+⭐️ **Local RAG systems** with vector search and semantic retrieval  
+⭐️ **Automated content generation** pipelines for marketing teams
+
+## Installation
+
+The core of the Supabase AI Starter Kit is a Docker Compose file, pre-configured with network and storage settings, minimizing the need for additional installations.
+
+### Cloning the Repository
 
 ```bash
 git clone https://github.com/fletchertyler914/supabase-ai-starter-kit.git
 cd supabase-ai-starter-kit
 ```
 
-### 2. Run it:
+### Running with Docker Compose
 
-**Default setup (CPU-only):**
+#### For everyone else (CPU-only)
 
 ```bash
 docker compose --profile cpu up
 ```
 
-**Mac users with local Ollama:**
-
-First, start Ollama locally and pull the models:
+#### For NVIDIA GPU users
 
 ```bash
-# Start Ollama (if not already running)
-ollama serve
+docker compose --profile gpu-nvidia up
+```
 
-# Pull the default models
+> [!NOTE]
+> If you have not used your NVIDIA GPU with Docker before, please follow the [Ollama Docker instructions](https://github.com/ollama/ollama/blob/main/docs/docker.md).
+
+#### For AMD GPU users on Linux
+
+```bash
+docker compose --profile gpu-amd up
+```
+
+#### For Mac / Apple Silicon users
+
+If you're using a Mac with an M1 or newer processor, you can't expose your GPU to the Docker instance. You have two options:
+
+1. **Run fully on CPU** (use the "For everyone else" section above)
+2. **Run Ollama locally** for faster inference (recommended)
+
+**Option 2: Local Ollama setup:**
+
+First, install and start Ollama locally:
+
+```bash
+# Install Ollama (check https://ollama.com/ for latest instructions)
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Start Ollama and pull models
+ollama serve
 ollama pull llama3.2:1b
 ollama pull nomic-embed-text
 ```
 
-Then run the stack (no profile needed):
+Then run the starter kit:
 
 ```bash
 export OLLAMA_HOST=host.docker.internal:11434
 docker compose up
 ```
 
-**Open [localhost:5678](http://localhost:5678) → Complete the quick setup → Select a chatbot workflow → Start chatting.**
+## ⚡️ Quick start and usage
 
-That's it. No yaml editing, no credential juggling. **It just works.**
+After completing the installation steps above, follow these steps to get started:
 
-## GPU Support (Optional)
+1. **Open [http://localhost:5678/](http://localhost:5678/)** in your browser to set up n8n. You'll only have to do this once.
+2. **Navigate to the included workflows** - they're automatically imported and activated
+3. **Click the direct chat link** to start using the AI chatbot immediately:
+   - **NodeBot**: [http://localhost:5678/webhook/ba65d0a2-7d1d-4efe-9e7a-c41b1031e3bb/chat](http://localhost:5678/webhook/ba65d0a2-7d1d-4efe-9e7a-c41b1031e3bb/chat)
+4. **If this is your first time**, you may need to wait while Ollama downloads the `llama3.2:1b` model. You can inspect the Docker console logs to check progress.
 
-**NVIDIA:**
+To open n8n at any time, visit [http://localhost:5678/](http://localhost:5678/) in your browser.
 
-```bash
-docker compose --profile gpu-nvidia up
-```
+With your n8n instance, you'll have access to over 400 integrations and a suite of basic and advanced AI nodes such as [AI Agent](https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent/), [Text classifier](https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.text-classifier/), and [Information Extractor](https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.information-extractor/) nodes. To keep everything local, just remember to use the Ollama node for your language model and PostgreSQL with pgvector for embeddings.
 
-**AMD (Linux):**
-
-```bash
-docker compose --profile gpu-amd up
-```
-
-## What You Get Out of the Box
+## What you get out of the box
 
 ### 🤖 **Instant AI Chatbots**
 
-One unified workflow that works with both local and Docker Ollama setups:
+Pre-built workflows that work immediately:
 
-- **"Ollama Chat"** - Automatically detects and works with your Ollama configuration
+- **"NodeBot"** - A technical AI assistant pre-trained on Supabase, n8n, and Ollama workflows
+- soon™️...
 
-**Direct Chat Link** (available after running the stack):
+> ✨ **Workflows are automatically activated!**
+> The chat links work immediately after startup.
 
-- **Chat Interface**: [http://localhost:5678/webhook/ba65d0a2-7d1d-4efe-9e7a-c41b1031e3bb/chat](http://localhost:5678/webhook/ba65d0a2-7d1d-4efe-9e7a-c41b1031e3bb/chat)
-
-> ✨ **Workflow is automatically activated!** The chat link works immediately after startup.
-
-> ✨ **Workflow changes auto-save!** Modify the workflow in the n8n UI and it persists automatically.
+> ✨ **Workflow changes auto-save!** Modify workflows in the n8n UI and they are stored in supabase under the `n8n` schema.
 
 ### ⚡ **Vector Search Ready**
 
@@ -110,6 +138,18 @@ LIMIT 5;
 
 User management, real-time subscriptions, and APIs auto-generated. Because life's too short to build auth from scratch.
 
+## Key Differentiators
+
+| Feature                | n8n Starter Kit | Supabase AI Starter Kit                |
+| ---------------------- | --------------- | -------------------------------------- |
+| **Vector Storage**     | Qdrant          | PostgreSQL + pgvector                  |
+| **Authentication**     | ❌              | ✅ Built-in auth with social providers |
+| **Real-time Features** | ❌              | ✅ WebSocket subscriptions             |
+| **Edge Functions**     | ❌              | ✅ Serverless TypeScript functions     |
+| **Database Admin**     | ❌              | ✅ Supabase Studio interface           |
+| **Email Testing**      | ❌              | ✅ Local email server for dev          |
+| **Pre-built Chatbots** | ❌              | ✅ Working chatbot out of the box      |
+
 ## For the Tinkerers
 
 ### Local Email Testing
@@ -119,16 +159,6 @@ docker compose -f docker-compose.yml -f dev/docker-compose.dev.yml up
 ```
 
 Includes local email server at [localhost:9000](http://localhost:9000) for testing OTP flows.
-
-### Environment Magic
-
-```bash
-# Use local Ollama (Mac)
-OLLAMA_HOST=host.docker.internal:11434
-
-# Use Docker Ollama (default)
-# No env var needed
-```
 
 ### Adding More Ollama Models
 
@@ -154,11 +184,30 @@ docker exec ollama-gpu ollama pull llama3.2:3b
 docker exec ollama-cpu ollama list
 ```
 
-### First-Time Setup
+## Upgrading
 
-When you first access n8n at [localhost:5678](http://localhost:5678), you'll need to create an owner account. This is a one-time setup - just provide an email and password to get started.
+### For NVIDIA GPU setups:
 
-### Troubleshooting
+```bash
+docker compose --profile gpu-nvidia pull
+docker compose create && docker compose --profile gpu-nvidia up
+```
+
+### For Mac / Apple Silicon users
+
+```bash
+docker compose pull
+docker compose create && docker compose up
+```
+
+### For CPU-only setups:
+
+```bash
+docker compose --profile cpu pull
+docker compose create && docker compose --profile cpu up
+```
+
+## Troubleshooting
 
 **Workflows appear inactive?** If imported workflows don't activate automatically:
 
@@ -173,7 +222,7 @@ docker compose restart n8n
 **Need a clean slate?** Reset the entire project while preserving or clearing Ollama models:
 
 ```bash
-# Reset everything but keep downloaded Ollama models (default)
+# Reset everything but keep downloaded Ollama models (recommended)
 ./reset.sh
 
 # Reset everything including Ollama models
@@ -183,32 +232,29 @@ docker compose restart n8n
 ./reset.sh --help
 ```
 
-**Note**: The reset script preserves Ollama models by default to save re-download time. Use `--clear-ollama` if you want to start completely fresh.
+**Chat links not working?** Make sure you've completed the initial n8n setup at [http://localhost:5678/](http://localhost:5678/) first.
+
+> [NOTE]
+> This starter kit is designed to help you get started with self-hosted AI workflows. While it's not fully optimized for production environments, it combines robust, battle-tested components that work well together for proof-of-concept projects and rapid prototyping. You can customize it to meet your specific needs.
 
 ## Services
 
-| Service             | URL                                     | Purpose          |
-| ------------------- | --------------------------------------- | ---------------- |
-| **Supabase Studio** | [localhost:8000](http://localhost:8000) | Database admin   |
-| **n8n**             | [localhost:5678](http://localhost:5678) | Workflow builder |
-| **Email Testing**   | [localhost:9000](http://localhost:9000) | Dev emails       |
+| Service             | URL                                     | Purpose                             |
+| ------------------- | --------------------------------------- | ----------------------------------- |
+| **Supabase Studio** | [localhost:8000](http://localhost:8000) | Database admin & project management |
+| **n8n**             | [localhost:5678](http://localhost:5678) | Workflow builder                    |
+| **AI Chatbots**     | Direct webhook URLs                     | Ready-to-use conversational AI      |
+| **Email Testing**   | [localhost:9000](http://localhost:9000) | Local email server for dev          |
+
+## 📜 License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
 
 ## Why This Exists
 
 Every weekend warrior and side-project hero has been there: you have a brilliant AI idea, but you spend 6 hours wrestling with Docker configs instead of building. This starter kit is for the builders who want to spend their time creating, not configuring.
 
-**Inspired by the [n8n AI starter kit](https://github.com/n8n-io/self-hosted-ai-starter-kit)**, but supercharged with Supabase's unified platform. Because why manage separate services when you can have it all in one beautiful, scalable stack?
-
-## The Supabase Difference
-
-Unlike traditional setups with PostgreSQL + Qdrant + separate auth services:
-
-- **One database** for everything (structured data + vectors)
-- **Built-in auth** with social providers, magic links, OTP
-- **Real-time subscriptions** out of the box
-- **Edge functions** for custom logic
-- **Auto-generated APIs** (REST + GraphQL)
-- **Row Level Security** for multi-tenant apps
+**What would you build if setup took 60 seconds instead of 6 hours?**
 
 ## Contributing
 
@@ -228,11 +274,3 @@ Built with ❤️ by developers, for developers.
 - **Issues & Questions**: [GitHub Issues](https://github.com/fletchertyler914/supabase-ai-starter-kit/issues)
 - **Supabase Community**: [Discord](https://discord.supabase.com/)
 - **n8n Community**: [Forum](https://community.n8n.io/)
-
-## License
-
-Apache License 2.0 - Build something awesome.
-
----
-
-**Happy building!** 🛠️ _From all of us who believe that the best way to predict the future is to build it._
