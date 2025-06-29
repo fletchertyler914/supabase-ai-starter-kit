@@ -1,5 +1,35 @@
 #!/bin/bash
 
+# Parse command line arguments
+CLEAR_OLLAMA=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --clear-ollama)
+            CLEAR_OLLAMA=true
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: $0 [OPTIONS]"
+            echo "Reset the Supabase project to a clean state."
+            echo ""
+            echo "Options:"
+            echo "  --clear-ollama    Also remove Ollama models and volumes (default: preserve)"
+            echo "  -h, --help        Show this help message"
+            echo ""
+            echo "Examples:"
+            echo "  $0                    # Reset everything but preserve Ollama models"
+            echo "  $0 --clear-ollama     # Reset everything including Ollama models"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
+
 # Color codes
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -21,13 +51,21 @@ print_header() {
 }
 
 print_warning() {
-    echo -e "${RED}⚠️  WARNING: This will remove all containers, volumes, and data!${NC}"
+    echo -e "${RED}⚠️  WARNING: This will remove containers, volumes, and data!${NC}"
     echo -e "${RED}   • All Docker containers will be stopped and removed${NC}"
-    echo -e "${RED}   • All volumes including Ollama models will be deleted${NC}"
+    if [ "$CLEAR_OLLAMA" = true ]; then
+        echo -e "${RED}   • All volumes INCLUDING Ollama models will be deleted${NC}"
+    else
+        echo -e "${YELLOW}   • Database volumes will be deleted (Ollama models preserved)${NC}"
+    fi
     echo -e "${RED}   • All bind-mounted data directories will be cleared${NC}"
     echo -e "${RED}   • The .env file will be reset to defaults${NC}"
     echo ""
-    echo -e "${YELLOW}   This action CANNOT be undone!${NC}"
+    if [ "$CLEAR_OLLAMA" = true ]; then
+        echo -e "${YELLOW}   This action CANNOT be undone!${NC}"
+    else
+        echo -e "${YELLOW}   Note: Ollama models will be preserved (use --clear-ollama to remove)${NC}"
+    fi
     echo ""
 }
 
@@ -77,10 +115,20 @@ echo ""
 # Step 1: Container cleanup
 print_section "🐳 CONTAINER CLEANUP"
 print_step "Stopping and removing Docker Compose services..."
-if docker compose -f docker-compose.yml -f ./dev/docker-compose.dev.yml down -v --remove-orphans >/dev/null 2>&1; then
-    print_success "Docker Compose services removed"
+if [ "$CLEAR_OLLAMA" = true ]; then
+    # Remove all volumes including Ollama
+    if docker compose -f docker-compose.yml -f ./dev/docker-compose.dev.yml down -v --remove-orphans >/dev/null 2>&1; then
+        print_success "Docker Compose services and all volumes removed"
+    else
+        print_error "Failed to remove some Docker Compose services"
+    fi
 else
-    print_error "Failed to remove some Docker Compose services"
+    # Remove containers but preserve volumes (we'll selectively remove non-Ollama volumes later)
+    if docker compose -f docker-compose.yml -f ./dev/docker-compose.dev.yml down --remove-orphans >/dev/null 2>&1; then
+        print_success "Docker Compose services removed (volumes preserved)"
+    else
+        print_error "Failed to remove some Docker Compose services"
+    fi
 fi
 
 print_step "Cleaning up remaining Ollama containers..."
@@ -107,16 +155,39 @@ echo ""
 
 # Step 2: Volume cleanup
 print_section "💾 VOLUME CLEANUP"
-print_step "Removing Ollama models and data volumes..."
-OLLAMA_VOLUMES=$(docker volume ls -q | grep ollama 2>/dev/null || true)
-if [ -n "$OLLAMA_VOLUMES" ]; then
-    if echo "$OLLAMA_VOLUMES" | xargs docker volume rm >/dev/null 2>&1; then
-        print_success "Ollama volumes removed: $(echo $OLLAMA_VOLUMES | tr '\n' ' ')"
+
+if [ "$CLEAR_OLLAMA" = true ]; then
+    print_step "Removing Ollama models and data volumes..."
+    OLLAMA_VOLUMES=$(docker volume ls -q | grep ollama 2>/dev/null || true)
+    if [ -n "$OLLAMA_VOLUMES" ]; then
+        if echo "$OLLAMA_VOLUMES" | xargs docker volume rm >/dev/null 2>&1; then
+            print_success "Ollama volumes removed: $(echo $OLLAMA_VOLUMES | tr '\n' ' ')"
+        else
+            print_error "Failed to remove some Ollama volumes"
+        fi
     else
-        print_error "Failed to remove some Ollama volumes"
+        print_skip "No Ollama volumes found"
     fi
 else
-    print_skip "No Ollama volumes found"
+    print_step "Preserving Ollama volumes, removing other project volumes..."
+    # Get all project volumes but exclude Ollama ones
+    PROJECT_VOLUMES=$(docker volume ls -q | grep -E "(supabase|postgres|n8n)" | grep -v ollama 2>/dev/null || true)
+    if [ -n "$PROJECT_VOLUMES" ]; then
+        if echo "$PROJECT_VOLUMES" | xargs docker volume rm >/dev/null 2>&1; then
+            print_success "Project volumes removed (Ollama preserved): $(echo $PROJECT_VOLUMES | tr '\n' ' ')"
+        else
+            print_error "Failed to remove some project volumes"
+        fi
+    else
+        print_skip "No project volumes found to remove"
+    fi
+    
+    OLLAMA_VOLUMES=$(docker volume ls -q | grep ollama 2>/dev/null || true)
+    if [ -n "$OLLAMA_VOLUMES" ]; then
+        print_success "Ollama volumes preserved: $(echo $OLLAMA_VOLUMES | tr '\n' ' ')"
+    else
+        print_skip "No Ollama volumes found"
+    fi
 fi
 
 echo ""
@@ -173,12 +244,16 @@ echo -e "${GREEN}"
 echo "╔════════════════════════════════════════════════════════════════════════════════╗"
 echo "║                              🎉 CLEANUP COMPLETE! 🎉                           ║"
 echo "╠════════════════════════════════════════════════════════════════════════════════╣"
-echo "║  Your Supabase project has been completely reset to a clean state.            ║"
+echo "║  Your Supabase project has been reset to a clean state.                       ║"
 echo "║                                                                                ║"
 echo "║  Next steps:                                                                   ║"
 echo "║  • Run: docker compose --profile cpu up                                       ║"
 echo "║  • Your environment will start fresh with default settings                    ║"
+if [ "$CLEAR_OLLAMA" = true ]; then
 echo "║  • New Ollama models will be downloaded based on your .env configuration      ║"
+else
+echo "║  • Existing Ollama models are preserved and ready to use                      ║"
+fi
 echo "╚════════════════════════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 echo ""

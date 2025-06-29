@@ -172,6 +172,21 @@ docker exec n8n n8n update:workflow --all --active=true
 docker compose restart n8n
 ```
 
+**Need a clean slate?** Reset the entire project while preserving or clearing Ollama models:
+
+```bash
+# Reset everything but keep downloaded Ollama models (default)
+./reset.sh
+
+# Reset everything including Ollama models
+./reset.sh --clear-ollama
+
+# See all available options
+./reset.sh --help
+```
+
+**Note**: The reset script preserves Ollama models by default to save re-download time. Use `--clear-ollama` if you want to start completely fresh.
+
 ## Services
 
 | Service             | URL                                     | Purpose          |
