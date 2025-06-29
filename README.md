@@ -1,3 +1,5 @@
+![Supabase AI Starter Kit](./assets/supabase-ai-starter-kit-banner.png)
+
 # Supabase AI Starter Kit
 
 > **Build AI that scales. Ship in a weekend, iterate forever.**
