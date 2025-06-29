@@ -56,6 +56,7 @@ This directory contains utility scripts for managing and testing the Supabase pr
 - **After starting the stack:** Run `health-check.sh` to verify everything is up
 - **After database changes:** Run `test-database-integration.sh` to verify DB integrity
 - **Before committing changes:** Run both scripts to ensure no regressions
+- **n8n workflows:** All data persists automatically in Supabase database ✨
 
 ### Troubleshooting
 
@@ -68,6 +69,13 @@ This directory contains utility scripts for managing and testing the Supabase pr
 - **After deployment:** Run both scripts to verify successful deployment
 - **Regular monitoring:** Schedule `health-check.sh` to run periodically
 - **Before maintenance:** Run scripts to establish baseline health
+
+### n8n Workflow Management
+
+- **All workflows and credentials persist in Supabase database** - No backups needed! ✨
+- **Initial setup:** Uses `n8n/demo-data/` for seeding workflows on first run
+- **Reset to defaults:** Use `./reset.sh` to restore initial demo-data state
+- **After git pull/merge:** If demo-data changed, restart stack to import new workflows
 
 ## Script Features
 

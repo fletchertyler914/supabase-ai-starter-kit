@@ -612,6 +612,8 @@ services:
       - 'n8n import:credentials --separate --input=/demo-data/credentials && n8n import:workflow --separate --input=/demo-data/workflows'
     volumes:
       - ./n8n/demo-data:/demo-data
+      # 🔄 BIDIRECTIONAL: Same volume mount for import to work with bidirectional setup
+      - ./volumes/n8n:/home/node/.n8n
     depends_on:
       db:
         condition: service_healthy
@@ -624,13 +626,14 @@ services:
     ports:
       - 5678:5678
     volumes:
-      - n8n_storage:/home/node/.n8n
-      - ./n8n/demo-data:/demo-data
+      - ./volumes/n8n:/home/node/.n8n
     depends_on:
-      db:
-        condition: service_healthy
       n8n-import:
         condition: service_completed_successfully
+      db:
+        condition: service_healthy
+    # supavisor:
+    #   condition: service_healthy
 
   ollama-cpu:
     profiles: ['cpu']
@@ -677,4 +680,4 @@ services:
 volumes:
   db-config:
   ollama_storage:
-  n8n_storage:
+  # n8n_storage: # No longer needed - using direct mount

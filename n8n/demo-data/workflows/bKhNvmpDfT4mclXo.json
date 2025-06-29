@@ -1,9 +1,16 @@
 {
+  "createdAt": "2025-06-29T06:54:15.510Z",
+  "updatedAt": "2025-06-29T15:00:31.391Z",
+  "id": "bKhNvmpDfT4mclXo",
   "name": "Local Ollama Chat (Macbook)",
-  "active": false,
+  "active": true,
   "nodes": [
     {
-      "parameters": {},
+      "parameters": {
+        "public": true,
+        "initialMessages": "Hi there! 👋 \nI’m NodeBot, your local AI co-pilot for Supabase, n8n, and Ollama. \nNeed help wiring up a workflow, setting up Supabase rules, or running local AI models? \nJust tell me what you’re building — I’ll jump in.",
+        "options": {}
+      },
       "id": "787a4727-0eb1-458f-bd20-83b32b7324a2",
       "name": "Chat Trigger",
       "type": "@n8n/n8n-nodes-langchain.chatTrigger",
@@ -12,7 +19,15 @@
       "webhookId": "ba65d0a2-7d1d-4efe-9e7a-c41b1031e3bb"
     },
     {
-      "parameters": {},
+      "parameters": {
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are NodeBot, an intelligent, self-hosted AI assistant for the Supabase + n8n + Ollama developer stack. You run on a local LLaMA 3.2 model and serve as a technical guide, automation co-pilot, and debugging partner. Your role is to help users: \t•\tDesign and manage n8n workflows (webhooks, automation chains, error handling, etc.) \t•\tIntegrate local AI agents into workflows via Ollama \t•\tWork with Supabase projects, including auth, storage, RLS, SQL, and edge functions \t•\tProvide clear, concise help with YAML, SQL, JavaScript, TypeScript, and API integrations \t•\tAssist with local hosting, self-contained deployments, and no-cloud setups  Important: Supabase, n8n, and Ollama are already set up and running in the system. Do not ask users if they want help installing or setting these up. Focus only on how to use or integrate them effectively.  Your tone is practical, developer-friendly, and efficient. Use code blocks and config examples when helpful. Always prioritize locally hosted tools, minimal dependencies, and performance-aware advice. If asked about cloud alternatives, acknowledge them but return focus to the self-hosted stack.  If a user requests something outside your scope (e.g., deep machine learning theory), politely defer and redirect toward implementation or integration-level support.  Always assume the user is technically capable but may be unfamiliar with specific tools or workflows."
+            }
+          ]
+        }
+      },
       "id": "faaa52c8-0fc6-4023-bc37-5085cb03d664",
       "name": "Basic LLM Chain",
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
@@ -20,12 +35,15 @@
       "position": [880, 340]
     },
     {
-      "parameters": { "model": "llama3.2:3b", "options": {} },
+      "parameters": {
+        "model": "llama3.2:3b",
+        "options": {}
+      },
       "id": "154666e7-4a7d-4049-9350-17dbbaf8f3b6",
       "name": "Ollama Chat Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
       "typeVersion": 1,
-      "position": [900, 560],
+      "position": [968, 560],
       "credentials": {
         "ollamaApi": {
           "id": "VmhEukzPe8au9PTB",
@@ -36,22 +54,37 @@
   ],
   "connections": {
     "Chat Trigger": {
-      "main": [[{ "node": "Basic LLM Chain", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Ollama Chat Model": {
       "ai_languageModel": [
-        [{ "node": "Basic LLM Chain", "type": "ai_languageModel", "index": 0 }]
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
       ]
     }
   },
-  "createdAt": "2025-06-29T06:54:15.51+00:00",
-  "updatedAt": "2025-06-29T07:23:28.906+00:00",
-  "settings": { "executionOrder": "v1" },
+  "settings": {
+    "executionOrder": "v1"
+  },
   "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
   "pinData": {},
-  "versionId": "6e53b69f-4bfc-44af-a4fa-9eca1ffce0d5",
+  "versionId": "135c6175-87c8-4999-949a-8af0fdbd2046",
   "triggerCount": 2,
-  "id": "bKhNvmpDfT4mclXo",
-  "meta": { "templateCredsSetupCompleted": true },
-  "parentFolderId": null
+  "tags": []
 }

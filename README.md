@@ -71,6 +71,8 @@ Two pre-loaded workflows that work immediately:
 - **MacBook Ollama**: [http://localhost:5678/webhook/ba65d0a2-7d1d-4efe-9e7a-c41b1031e3bb/chat](http://localhost:5678/webhook/ba65d0a2-7d1d-4efe-9e7a-c41b1031e3bb/chat)
 - **Docker Ollama**: [http://localhost:5678/webhook/d1433448-02fc-44cd-9512-63941e7c4973/chat](http://localhost:5678/webhook/d1433448-02fc-44cd-9512-63941e7c4973/chat)
 
+> ✨ **Workflow changes auto-save!** Modify workflows in the n8n UI and they persist automatically.
+
 ### ⚡ **Vector Search Ready**
 
 PostgreSQL with pgvector extension pre-configured. No setup, no fuss:
