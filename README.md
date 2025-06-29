@@ -34,12 +34,25 @@ docker compose --profile cpu up
 
 **Mac users with local Ollama:**
 
+First, start Ollama locally and pull the models:
+
 ```bash
-export OLLAMA_HOST=host.docker.internal:11434
-docker compose --profile cpu up
+# Start Ollama (if not already running)
+ollama serve
+
+# Pull the default models
+ollama pull llama3.2:1b
+ollama pull nomic-embed-text
 ```
 
-**Open [localhost:5678](http://localhost:5678) → Select a chatbot workflow → Start chatting.**
+Then run the stack (no profile needed):
+
+```bash
+export OLLAMA_HOST=host.docker.internal:11434
+docker compose up
+```
+
+**Open [localhost:5678](http://localhost:5678) → Complete the quick setup → Select a chatbot workflow → Start chatting.**
 
 That's it. No yaml editing, no credential juggling. **It just works.**
 
@@ -70,6 +83,8 @@ Two pre-loaded workflows that work immediately:
 
 - **MacBook Ollama**: [http://localhost:5678/webhook/ba65d0a2-7d1d-4efe-9e7a-c41b1031e3bb/chat](http://localhost:5678/webhook/ba65d0a2-7d1d-4efe-9e7a-c41b1031e3bb/chat)
 - **Docker Ollama**: [http://localhost:5678/webhook/d1433448-02fc-44cd-9512-63941e7c4973/chat](http://localhost:5678/webhook/d1433448-02fc-44cd-9512-63941e7c4973/chat)
+
+> ✨ **Workflows are automatically activated!** The chat links work immediately after startup.
 
 > ✨ **Workflow changes auto-save!** Modify workflows in the n8n UI and they persist automatically.
 
@@ -115,6 +130,22 @@ OLLAMA_HOST=host.docker.internal:11434
 
 # Use Docker Ollama (default)
 # No env var needed
+```
+
+### First-Time Setup
+
+When you first access n8n at [localhost:5678](http://localhost:5678), you'll need to create an owner account. This is a one-time setup - just provide an email and password to get started.
+
+### Troubleshooting
+
+**Workflows appear inactive?** If imported workflows don't activate automatically:
+
+```bash
+# Manually activate all workflows
+docker exec n8n n8n update:workflow --all --active=true
+
+# Then restart the container
+docker compose restart n8n
 ```
 
 ## Services

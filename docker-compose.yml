@@ -616,7 +616,7 @@ services:
     entrypoint: /bin/sh
     command:
       - '-c'
-      - 'n8n import:credentials --separate --input=/demo-data/credentials && n8n import:workflow --separate --input=/demo-data/workflows'
+      - 'n8n import:credentials --separate --input=/demo-data/credentials && n8n import:workflow --separate --input=/demo-data/workflows && n8n update:workflow --all --active=true'
     volumes:
       - ./n8n/demo-data:/demo-data
       # 🔄 BIDIRECTIONAL: Same volume mount for import to work with bidirectional setup
