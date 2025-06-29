@@ -624,7 +624,6 @@ services:
     volumes:
       - n8n_storage:/home/node/.n8n
       - ./n8n/demo-data:/demo-data
-      - ./shared:/data/shared
     depends_on:
       db:
         condition: service_healthy
