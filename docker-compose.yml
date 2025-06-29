@@ -460,6 +460,8 @@ services:
       - ./volumes/db/pooler.sql:/docker-entrypoint-initdb.d/migrations/99-pooler.sql:Z
       # Changes required for n8n support
       - ./volumes/db/n8n.sql:/docker-entrypoint-initdb.d/migrations/99-n8n.sql:Z
+      # Enable pgvector extension for vector similarity search
+      - ./volumes/db/vector.sql:/docker-entrypoint-initdb.d/migrations/99-vector.sql:Z
       # Use named volume to persist pgsodium decryption key between restarts
       - db-config:/etc/postgresql-custom
     healthcheck:
