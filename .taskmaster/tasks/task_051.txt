@@ -1,0 +1,59 @@
+# Task ID: 51
+# Title: Set Up API Gateway and Routing
+# Status: pending
+# Dependencies: 48, 50
+# Priority: medium
+# Description: Configure Kong API gateway with proper routing for REST and GraphQL endpoints.
+# Details:
+1. Review existing Kong configuration in Docker setup
+
+2. Configure routes for auto-generated REST endpoints:
+   ```yaml
+   # Kong route configuration
+   - name: rest-api
+     paths:
+       - /rest/v1
+     service: supabase-rest
+     strip_path: true
+     plugins:
+       - name: cors
+       - name: key-auth
+   ```
+
+3. Set up GraphQL endpoint routing:
+   ```yaml
+   # Kong route configuration
+   - name: graphql-api
+     paths:
+       - /graphql/v1
+     service: supabase-graphql
+     strip_path: true
+     plugins:
+       - name: cors
+       - name: jwt-auth
+   ```
+
+4. Configure WebSocket connections for real-time features:
+   ```yaml
+   # Kong route configuration
+   - name: realtime
+     paths:
+       - /realtime
+     service: supabase-realtime
+     strip_path: false
+   ```
+
+5. Set up storage API routes
+
+6. Implement basic rate limiting and security plugins
+
+7. Configure proper CORS settings for development and production
+
+# Test Strategy:
+1. Test REST endpoint access with authentication
+2. Verify GraphQL queries work through the gateway
+3. Test WebSocket connections for real-time updates
+4. Validate CORS configuration with cross-origin requests
+5. Test rate limiting functionality
+6. Verify proper routing of requests to appropriate services
+7. Check error responses for invalid routes

@@ -30,3 +30,9 @@ volumes/n8n
 .env
 .env.*
 !.env.example
+
+# Environment variables
+
+# Task files
+# tasks.json
+# tasks/ 

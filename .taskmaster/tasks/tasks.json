@@ -1,0 +1,120 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 48,
+        "title": "Verify Docker Stack Integration",
+        "description": "Ensure all Docker services start correctly and communicate with each other properly.",
+        "details": "1. Review and validate the existing Docker configuration files:\n   - docker-compose.yml (main services)\n   - docker-compose.dev.yml (development config)\n   - docker-compose.s3.yml (storage setup)\n\n2. Test the complete stack startup with:\n   ```bash\n   docker-compose up\n   ```\n\n3. Verify service connectivity:\n   - Supabase database is accessible\n   - Authentication service is running\n   - API endpoints are generated\n   - WebSocket connections work\n   - Storage service is operational\n   - Edge functions can be invoked\n   - n8n workflows are accessible\n\n4. Implement health check endpoints for each service\n\n5. Document any configuration adjustments needed\n\n6. Ensure services start in the correct order with proper dependency chains",
+        "testStrategy": "1. Create a test script that verifies each service is running with proper status codes\n2. Test inter-service communication with basic requests\n3. Verify logs show successful startup without errors\n4. Measure startup time to ensure it meets the 5-minute requirement\n5. Test stack restart to ensure persistence works correctly",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 49,
+        "title": "Integrate Database Scripts",
+        "description": "Ensure all SQL files work together properly and initialize the database correctly on first run.",
+        "details": "1. Review and organize existing SQL scripts:\n   - roles.sql\n   - jwt.sql\n   - realtime.sql\n   - vector.sql\n   - webhooks.sql\n   - logs.sql\n   - pooler.sql\n\n2. Create a master initialization script that runs all SQL files in the correct order\n\n3. Implement idempotent execution (scripts can be run multiple times safely)\n\n4. Add version tracking to database schema\n\n5. Create a database initialization check that runs on startup:\n   ```sql\n   CREATE OR REPLACE FUNCTION check_db_initialized()\n   RETURNS boolean AS $$\n   BEGIN\n     -- Check if core tables exist\n     RETURN EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'roles');\n   END;\n   $$ LANGUAGE plpgsql;\n   ```\n\n6. Ensure all extensions are properly installed and configured\n\n7. Test script execution in both fresh and existing database environments",
+        "testStrategy": "1. Test initialization on a clean database\n2. Verify all tables, functions, and extensions are created correctly\n3. Test re-running scripts to ensure idempotency\n4. Validate permissions and roles are correctly assigned\n5. Check that vector extensions work with sample queries\n6. Verify realtime subscriptions can be established",
+        "priority": "high",
+        "dependencies": [
+          48
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 50,
+        "title": "Configure Authentication Flow",
+        "description": "Set up Supabase authentication with basic providers and ensure the signup/login flow works end-to-end.",
+        "details": "1. Configure Supabase Auth settings in the dashboard or via API:\n   ```javascript\n   const { data, error } = await supabase.auth.config({\n     autoRefreshToken: true,\n     persistSession: true,\n     detectSessionInUrl: true\n   })\n   ```\n\n2. Enable basic auth providers:\n   - Email/password\n   - Magic link\n   - OAuth (Google, GitHub)\n\n3. Set up JWT handling with the existing jwt.sql configuration\n\n4. Create user registration flow:\n   ```javascript\n   async function signUp(email, password) {\n     const { user, error } = await supabase.auth.signUp({\n       email,\n       password,\n     })\n     return { user, error }\n   }\n   ```\n\n5. Implement login functionality:\n   ```javascript\n   async function signIn(email, password) {\n     const { user, error } = await supabase.auth.signIn({\n       email,\n       password,\n     })\n     return { user, error }\n   }\n   ```\n\n6. Add session management and token refresh\n\n7. Configure role-based access control using the roles.sql schema",
+        "testStrategy": "1. Test user registration with email/password\n2. Verify email verification flow works\n3. Test login with created credentials\n4. Validate JWT token generation and verification\n5. Test session persistence and token refresh\n6. Verify role-based access controls work as expected\n7. Test OAuth provider integration if configured",
+        "priority": "high",
+        "dependencies": [
+          49
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 51,
+        "title": "Set Up API Gateway and Routing",
+        "description": "Configure Kong API gateway with proper routing for REST and GraphQL endpoints.",
+        "details": "1. Review existing Kong configuration in Docker setup\n\n2. Configure routes for auto-generated REST endpoints:\n   ```yaml\n   # Kong route configuration\n   - name: rest-api\n     paths:\n       - /rest/v1\n     service: supabase-rest\n     strip_path: true\n     plugins:\n       - name: cors\n       - name: key-auth\n   ```\n\n3. Set up GraphQL endpoint routing:\n   ```yaml\n   # Kong route configuration\n   - name: graphql-api\n     paths:\n       - /graphql/v1\n     service: supabase-graphql\n     strip_path: true\n     plugins:\n       - name: cors\n       - name: jwt-auth\n   ```\n\n4. Configure WebSocket connections for real-time features:\n   ```yaml\n   # Kong route configuration\n   - name: realtime\n     paths:\n       - /realtime\n     service: supabase-realtime\n     strip_path: false\n   ```\n\n5. Set up storage API routes\n\n6. Implement basic rate limiting and security plugins\n\n7. Configure proper CORS settings for development and production",
+        "testStrategy": "1. Test REST endpoint access with authentication\n2. Verify GraphQL queries work through the gateway\n3. Test WebSocket connections for real-time updates\n4. Validate CORS configuration with cross-origin requests\n5. Test rate limiting functionality\n6. Verify proper routing of requests to appropriate services\n7. Check error responses for invalid routes",
+        "priority": "medium",
+        "dependencies": [
+          48,
+          50
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 52,
+        "title": "Deploy and Test Edge Functions",
+        "description": "Ensure edge functions deploy and run correctly with proper integration to the rest of the stack.",
+        "details": "1. Review existing function examples:\n   - hello/ (basic function)\n   - main/ (primary business logic)\n\n2. Set up local function development environment:\n   ```bash\n   # Install Supabase CLI if not already installed\n   npm install -g supabase\n   \n   # Initialize functions locally\n   supabase functions serve\n   ```\n\n3. Create a test function to verify deployment:\n   ```typescript\n   // functions/test-function/index.ts\n   import { serve } from 'https://deno.land/std@0.131.0/http/server.ts'\n\n   serve(async (req) => {\n     const { name } = await req.json()\n     const data = { message: `Hello ${name || 'World'}!` }\n     return new Response(JSON.stringify(data), {\n       headers: { 'Content-Type': 'application/json' },\n     })\n   })\n   ```\n\n4. Configure function deployment in Docker environment\n\n5. Set up proper authentication for function invocation\n\n6. Implement function logging and error handling\n\n7. Create a helper utility for invoking functions from other services",
+        "testStrategy": "1. Deploy test function and verify it responds correctly\n2. Test function invocation with authentication\n3. Verify function logs are captured properly\n4. Test error handling in functions\n5. Measure function cold start and execution time\n6. Verify functions can access database when needed\n7. Test function invocation from other services",
+        "priority": "medium",
+        "dependencies": [
+          48,
+          51
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 53,
+        "title": "Implement Environment Management",
+        "description": "Clean up environment variable management and ensure proper configuration across environments.",
+        "details": "1. Create standardized .env file templates:\n   ```\n   # .env.example\n   POSTGRES_PASSWORD=your-secure-password\n   JWT_SECRET=your-jwt-secret\n   ANON_KEY=your-anon-key\n   SERVICE_ROLE_KEY=your-service-role-key\n   SITE_URL=http://localhost:3000\n   ```\n\n2. Implement environment variable validation on startup:\n   ```javascript\n   function validateEnv() {\n     const required = [\n       'POSTGRES_PASSWORD',\n       'JWT_SECRET',\n       'ANON_KEY',\n       'SERVICE_ROLE_KEY'\n     ]\n     \n     const missing = required.filter(key => !process.env[key])\n     \n     if (missing.length > 0) {\n       console.error(`Missing required env vars: ${missing.join(', ')}`)\n       process.exit(1)\n     }\n   }\n   ```\n\n3. Configure Docker services to use environment variables properly\n\n4. Set up environment-specific configurations (dev, staging, prod)\n\n5. Implement secrets management for sensitive values\n\n6. Document all required environment variables and their purpose\n\n7. Create a script to generate secure values for required secrets",
+        "testStrategy": "1. Test startup with missing environment variables\n2. Verify environment-specific configurations load correctly\n3. Test secrets access from different services\n4. Validate Docker services use the correct environment variables\n5. Check that sensitive values are properly protected\n6. Verify environment generation script creates valid configurations",
+        "priority": "medium",
+        "dependencies": [
+          48
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 54,
+        "title": "Implement Basic Monitoring and Error Handling",
+        "description": "Set up health checks and proper error responses to ensure system stability and observability.",
+        "details": "1. Create health check endpoints for each service:\n   ```javascript\n   app.get('/health', (req, res) => {\n     const status = {\n       status: 'ok',\n       timestamp: new Date(),\n       services: {\n         database: isDatabaseConnected() ? 'up' : 'down',\n         auth: isAuthServiceRunning() ? 'up' : 'down',\n         storage: isStorageServiceRunning() ? 'up' : 'down'\n       }\n     }\n     res.json(status)\n   })\n   ```\n\n2. Implement standardized error handling:\n   ```javascript\n   function errorHandler(err, req, res, next) {\n     console.error(err.stack)\n     \n     const status = err.statusCode || 500\n     const message = err.message || 'Internal Server Error'\n     \n     res.status(status).json({\n       error: {\n         message,\n         status,\n         timestamp: new Date()\n       }\n     })\n   }\n   \n   app.use(errorHandler)\n   ```\n\n3. Set up basic logging using the logs.sql infrastructure:\n   ```sql\n   -- Example log entry function\n   CREATE OR REPLACE FUNCTION log_event(event_type TEXT, event_data JSONB)\n   RETURNS VOID AS $$\n   BEGIN\n     INSERT INTO logs (event_type, event_data)\n     VALUES (event_type, event_data);\n   END;\n   $$ LANGUAGE plpgsql;\n   ```\n\n4. Implement database connection monitoring\n\n5. Create a simple dashboard for system status\n\n6. Set up error notification mechanism\n\n7. Implement graceful shutdown for services",
+        "testStrategy": "1. Test health check endpoints return correct status\n2. Verify error handling returns proper responses\n3. Test logging functionality with various event types\n4. Simulate service failures and verify monitoring detects them\n5. Test graceful shutdown and restart\n6. Verify error notifications are sent correctly\n7. Test dashboard displays accurate system status",
+        "priority": "medium",
+        "dependencies": [
+          48,
+          49,
+          51
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 55,
+        "title": "Implement Security Basics and Backup Strategy",
+        "description": "Set up essential security measures and a simple database backup solution.",
+        "details": "1. Configure SSL for all services:\n   ```yaml\n   # Docker compose SSL configuration\n   services:\n     nginx:\n       volumes:\n         - ./certs:/etc/nginx/certs\n       environment:\n         - SSL_CERT_PATH=/etc/nginx/certs/cert.pem\n         - SSL_KEY_PATH=/etc/nginx/certs/key.pem\n   ```\n\n2. Implement secrets management:\n   ```bash\n   # Generate secure secrets\n   JWT_SECRET=$(openssl rand -base64 32)\n   ANON_KEY=$(openssl rand -base64 32)\n   SERVICE_ROLE_KEY=$(openssl rand -base64 32)\n   \n   # Store in .env file\n   echo \"JWT_SECRET=$JWT_SECRET\" >> .env\n   echo \"ANON_KEY=$ANON_KEY\" >> .env\n   echo \"SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY\" >> .env\n   ```\n\n3. Set up database backup script:\n   ```bash\n   #!/bin/bash\n   # backup.sh\n   \n   TIMESTAMP=$(date +%Y%m%d_%H%M%S)\n   BACKUP_DIR=\"./backups\"\n   \n   mkdir -p $BACKUP_DIR\n   \n   docker-compose exec postgres pg_dump -U postgres -d postgres > \"$BACKUP_DIR/backup_$TIMESTAMP.sql\"\n   \n   # Keep only the last 7 backups\n   ls -t $BACKUP_DIR/backup_*.sql | tail -n +8 | xargs rm -f\n   ```\n\n4. Implement basic security headers:\n   ```javascript\n   app.use(helmet()) // For Express apps\n   \n   // Or in nginx config\n   add_header X-Frame-Options \"SAMEORIGIN\";\n   add_header X-XSS-Protection \"1; mode=block\";\n   add_header X-Content-Type-Options \"nosniff\";\n   ```\n\n5. Set up basic rate limiting\n\n6. Configure proper CORS settings\n\n7. Implement basic input validation for all endpoints",
+        "testStrategy": "1. Verify SSL configuration works correctly\n2. Test backup script creates valid database dumps\n3. Restore from backup to verify integrity\n4. Check security headers are properly set\n5. Test rate limiting functionality\n6. Verify CORS settings work as expected\n7. Test input validation with invalid data",
+        "priority": "high",
+        "dependencies": [
+          48,
+          49,
+          51,
+          53
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-06-29T08:59:17.392Z",
+      "updated": "2025-06-29T09:14:13.394Z",
+      "description": "Tasks for master context"
+    }
+  }
+}

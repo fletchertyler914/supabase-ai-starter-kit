@@ -1,0 +1,57 @@
+# Task ID: 50
+# Title: Configure Authentication Flow
+# Status: pending
+# Dependencies: 49
+# Priority: high
+# Description: Set up Supabase authentication with basic providers and ensure the signup/login flow works end-to-end.
+# Details:
+1. Configure Supabase Auth settings in the dashboard or via API:
+   ```javascript
+   const { data, error } = await supabase.auth.config({
+     autoRefreshToken: true,
+     persistSession: true,
+     detectSessionInUrl: true
+   })
+   ```
+
+2. Enable basic auth providers:
+   - Email/password
+   - Magic link
+   - OAuth (Google, GitHub)
+
+3. Set up JWT handling with the existing jwt.sql configuration
+
+4. Create user registration flow:
+   ```javascript
+   async function signUp(email, password) {
+     const { user, error } = await supabase.auth.signUp({
+       email,
+       password,
+     })
+     return { user, error }
+   }
+   ```
+
+5. Implement login functionality:
+   ```javascript
+   async function signIn(email, password) {
+     const { user, error } = await supabase.auth.signIn({
+       email,
+       password,
+     })
+     return { user, error }
+   }
+   ```
+
+6. Add session management and token refresh
+
+7. Configure role-based access control using the roles.sql schema
+
+# Test Strategy:
+1. Test user registration with email/password
+2. Verify email verification flow works
+3. Test login with created credentials
+4. Validate JWT token generation and verification
+5. Test session persistence and token refresh
+6. Verify role-based access controls work as expected
+7. Test OAuth provider integration if configured
