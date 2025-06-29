@@ -41,6 +41,12 @@ x-ollama: &service-ollama
     - 11434:11434
   volumes:
     - ollama_storage:/root/.ollama
+  environment:
+    - OLLAMA_NUM_PARALLEL=4
+    - OLLAMA_MAX_LOADED_MODELS=1
+    - OLLAMA_CONTEXT_LENGTH=2048
+    - OLLAMA_FLASH_ATTENTION=false
+    - OLLAMA_LOAD_TIMEOUT=10m0s
 
 x-init-ollama: &init-ollama
   image: ollama/ollama:latest
@@ -51,11 +57,11 @@ x-init-ollama: &init-ollama
     - ollama_storage:/root/.ollama
   entrypoint: /bin/sh
   environment:
-    - OLLAMA_HOST=ollama:11434
-    - OLLAMA_DEFAULT_MODELS=${OLLAMA_DEFAULT_MODELS:-llama3.2:3b}
+    - OLLAMA_HOST=http://ollama:11434
+    - OLLAMA_DEFAULT_MODELS=${OLLAMA_DEFAULT_MODELS:-llama3.2:1b}
   command:
     - '-c'
-    - 'sleep 3; echo "Pulling models: $$OLLAMA_DEFAULT_MODELS"; IFS=","; for model in $$OLLAMA_DEFAULT_MODELS; do model=$$(echo "$$model" | sed "s/^[[:space:]]*//;s/[[:space:]]*$$//"); if [ -n "$$model" ]; then echo "Pulling: $$model"; ollama pull "$$model" || exit 1; fi; done; echo "All models pulled successfully"'
+    - 'echo "Pulling models: $$OLLAMA_DEFAULT_MODELS"; IFS=","; for model in $$OLLAMA_DEFAULT_MODELS; do model=$$(echo "$$model" | sed "s/^[[:space:]]*//;s/[[:space:]]*$$//"); if [ -n "$$model" ]; then echo "Pulling: $$model"; ollama pull "$$model" || exit 1; fi; done; echo "All models pulled successfully"'
 
 services:
   studio:
@@ -636,6 +642,28 @@ services:
     # supavisor:
     #   condition: service_healthy
 
+  ollama-pull-llama-cpu:
+    profiles: ['cpu']
+    <<: *init-ollama
+    depends_on:
+      ollama-cpu:
+        condition: service_started
+
+  ollama-pull-llama-gpu:
+    profiles: ['gpu-nvidia']
+    <<: *init-ollama
+    depends_on:
+      ollama-gpu:
+        condition: service_started
+
+  ollama-pull-llama-gpu-amd:
+    profiles: ['gpu-amd']
+    <<: *init-ollama
+    image: ollama/ollama:rocm
+    depends_on:
+      ollama-gpu-amd:
+        condition: service_started
+
   ollama-cpu:
     profiles: ['cpu']
     <<: *service-ollama
@@ -658,25 +686,6 @@ services:
     devices:
       - '/dev/kfd'
       - '/dev/dri'
-
-  ollama-pull-llama-cpu:
-    profiles: ['cpu']
-    <<: *init-ollama
-    depends_on:
-      - ollama-cpu
-
-  ollama-pull-llama-gpu:
-    profiles: ['gpu-nvidia']
-    <<: *init-ollama
-    depends_on:
-      - ollama-gpu
-
-  ollama-pull-llama-gpu-amd:
-    profiles: ['gpu-amd']
-    <<: *init-ollama
-    image: ollama/ollama:rocm
-    depends_on:
-      - ollama-gpu-amd
 
 volumes:
   db-config:
