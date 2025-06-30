@@ -1,9 +1,10 @@
 # Usage
-#   Start:              docker compose up
-#   With helpers:       docker compose -f docker-compose.yml -f ./dev/docker-compose.dev.yml up
+#   External Ollama:    ./start.sh (or docker compose up)
+#   Containerized:      ./start.sh --cpu / ./start.sh --gpu-nvidia / ./start.sh --gpu-amd
+#   With email:         ./start.sh --dev-email --gpu-nvidia
+#   With dev helpers:   docker compose -f docker-compose.yml -f ./dev/docker-compose.dev.yml up
 #   Stop:               docker compose down
-#   Destroy:            docker compose -f docker-compose.yml -f ./dev/docker-compose.dev.yml down -v --remove-orphans
-#   Reset everything:  ./reset.sh
+#   Reset everything:   ./reset.sh [--clear-ollama] [--dev-email]
 
 name: supabase
 

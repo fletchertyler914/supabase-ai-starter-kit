@@ -26,67 +26,139 @@ Inspired by the [n8n AI starter kit](https://github.com/n8n-io/self-hosted-ai-st
 ⭐️ **Local RAG systems** with vector search and semantic retrieval  
 ⭐️ **Automated content generation** pipelines for marketing teams
 
-## Installation
+## 🚀 Common Commands
 
-The core of the Supabase AI Starter Kit is a Docker Compose file, pre-configured with network and storage settings, minimizing the need for additional installations.
+**Start (choose your setup):**
 
-### Cloning the Repository
+```bash
+# Ollama modes
+./start.sh                              # Host machine Ollama (fastest for Mac/Apple Silicon)
+./start.sh --cpu                        # Containerized CPU Ollama
+./start.sh --gpu-nvidia                 # Containerized NVIDIA GPU Ollama
+./start.sh --gpu-amd                    # Containerized AMD GPU Ollama
+
+# With email server for auth testing
+./start.sh --dev-email                  # Host Ollama + email server
+./start.sh --cpu --dev-email            # CPU Ollama + email server
+./start.sh --gpu-nvidia --dev-email     # NVIDIA GPU Ollama + email server
+./start.sh --gpu-amd --dev-email        # AMD GPU Ollama + email server
+
+# Background mode (detached)
+./start.sh --detach                     # Host Ollama and run everything in background
+./start.sh --cpu --detach               # CPU Ollama in background
+./start.sh --gpu-nvidia --detach        # NVIDIA GPU Ollama in background
+./start.sh --gpu-amd --detach           # AMD GPU Ollama in background
+
+# Full combinations
+./start.sh --gpu-nvidia --dev-email --detach  # NVIDIA + email + background
+./start.sh --gpu-amd --dev-email --detach     # AMD + email + background
+./start.sh --cpu --dev-email --detach         # CPU + email + background
+```
+
+**Reset (cleanup options):**
+
+```bash
+./reset.sh                              # Standard reset (keep Ollama models)
+./reset.sh --clear-ollama               # Nuclear option (remove everything)
+./reset.sh --dev-email                  # Include email server cleanup
+./reset.sh --clear-ollama --dev-email   # Full cleanup including email server
+```
+
+**Stop:**
+
+```bash
+docker compose down                     # Stop all services gracefully
+```
+
+## Installation & Quick Start
+
+**Zero-config startup in 60 seconds** ⚡
+
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/fletchertyler914/supabase-ai-starter-kit.git
 cd supabase-ai-starter-kit
 ```
 
-### Running with Docker Compose
+### 2. Start Everything
 
-#### For everyone else (CPU-only)
+**With external Ollama (fastest for Mac/Apple Silicon):**
 
 ```bash
-docker compose --profile cpu up
+./start.sh                    # Expects Ollama running on host
 ```
 
-#### For NVIDIA GPU users
+**With containerized Ollama:**
 
 ```bash
-docker compose --profile gpu-nvidia up
+./start.sh --cpu              # CPU-only container
+./start.sh --gpu-nvidia       # NVIDIA GPU container
+./start.sh --gpu-amd          # AMD GPU container
+```
+
+**With email testing:**
+
+```bash
+./start.sh --dev-email --gpu-nvidia
 ```
 
 > [!NOTE]
-> If you have not used your NVIDIA GPU with Docker before, please follow the [Ollama Docker instructions](https://github.com/ollama/ollama/blob/main/docs/docker.md).
+> For NVIDIA GPU users: If you haven't used your GPU with Docker before, follow the [Ollama Docker instructions](https://github.com/ollama/ollama/blob/main/docs/docker.md) first.
 
-#### For AMD GPU users on Linux
+### 3. For Mac / Apple Silicon Users
 
-```bash
-docker compose --profile gpu-amd up
-```
+Macs can't expose GPU to Docker containers, so you have two options:
 
-#### For Mac / Apple Silicon users
+**Option 1: External Ollama (Recommended - faster performance)**
 
-If you're using a Mac with an M1 or newer processor, you can't expose your GPU to the Docker instance. You have two options:
-
-1. **Run fully on CPU** (use the "For everyone else" section above)
-2. **Run Ollama locally** for faster inference (recommended)
-
-**Option 2: Local Ollama setup:**
-
-First, install and start Ollama locally:
+First, install Ollama locally:
 
 ```bash
-# Install Ollama (check https://ollama.com/ for latest instructions)
+# Install Ollama
 curl -fsSL https://ollama.com/install.sh | sh
 
 # Start Ollama and pull models
-ollama serve
+ollama serve &
 ollama pull llama3.2:1b
 ollama pull nomic-embed-text
 ```
 
-Then run the starter kit:
+Then start the kit (uses external Ollama):
 
 ```bash
 export OLLAMA_HOST=host.docker.internal:11434
-docker compose up
+./start.sh                    # External Ollama mode
+./start.sh --dev-email        # With email server
 ```
+
+**Option 2: Containerized CPU Ollama (Simpler but slower)**
+
+```bash
+./start.sh --cpu              # Containerized CPU Ollama
+./start.sh --cpu --dev-email  # With email server
+```
+
+<details>
+<summary><strong>🔧 Advanced: Direct Docker Compose Commands</strong></summary>
+
+If you prefer the traditional approach:
+
+```bash
+# CPU only
+docker compose --profile cpu up
+
+# NVIDIA GPU
+docker compose --profile gpu-nvidia up
+
+# AMD GPU
+docker compose --profile gpu-amd up
+
+# With email server
+docker compose -f docker-compose.yml -f docker-compose.email.yml --profile cpu up
+```
+
+</details>
 
 ## ⚡️ Quick start and usage
 
@@ -152,15 +224,17 @@ User management, real-time subscriptions, and APIs auto-generated. Because life'
 | **Email Testing**      | ❌              | ✅ Local email server for dev          |
 | **Pre-built Chatbots** | ❌              | ✅ Working chatbot out of the box      |
 
-## For the Tinkerers
+## 🔧 For the Tinkerers
 
-### Local Email Testing
+### Email Testing Server
+
+Test authentication flows with a local email server:
 
 ```bash
-docker compose -f docker-compose.yml -f dev/docker-compose.dev.yml up
+./start.sh --dev-email
 ```
 
-Includes local email server at [localhost:9000](http://localhost:9000) for testing OTP flows.
+Access the email interface at [localhost:9000](http://localhost:9000) to view OTP emails and auth flows.
 
 ### Adding More Ollama Models
 
@@ -188,26 +262,30 @@ docker exec ollama-cpu ollama list
 
 ## Upgrading
 
-### For NVIDIA GPU setups:
+**Simple two-step upgrade:**
 
 ```bash
+# Step 1: Reset to clean state
+./reset.sh
+
+# Step 2: Start with latest images
+./start.sh --gpu-nvidia  # or --cpu, --gpu-amd, etc.
+```
+
+**That's it!** The reset pulls fresh images automatically.
+
+<details>
+<summary><strong>🔧 Advanced: Manual Docker Compose Upgrade</strong></summary>
+
+```bash
+# Pull latest images first
 docker compose --profile gpu-nvidia pull
+
+# Recreate and start
 docker compose create && docker compose --profile gpu-nvidia up
 ```
 
-### For Mac / Apple Silicon users
-
-```bash
-docker compose pull
-docker compose create && docker compose up
-```
-
-### For CPU-only setups:
-
-```bash
-docker compose --profile cpu pull
-docker compose create && docker compose --profile cpu up
-```
+</details>
 
 ## Troubleshooting
 
@@ -221,17 +299,26 @@ docker exec n8n n8n update:workflow --all --active=true
 docker compose restart n8n
 ```
 
-**Need a clean slate?** Reset the entire project while preserving or clearing Ollama models:
+**Need a clean slate?** Reset everything with one command:
 
 ```bash
-# Reset everything but keep downloaded Ollama models (recommended)
+# Standard reset (preserves Ollama models)
 ./reset.sh
 
-# Reset everything including Ollama models
+# Nuclear option (removes everything including models)
 ./reset.sh --clear-ollama
 
-# See all available options
+# Include email server cleanup
+./reset.sh --dev-email
+
+# See all options
 ./reset.sh --help
+```
+
+**After reset, restart with your preferred setup:**
+
+```bash
+./start.sh --gpu-nvidia --dev-email  # or your preferred flags
 ```
 
 **Chat links not working?** Make sure you've completed the initial n8n setup at [http://localhost:5678/](http://localhost:5678/) first.
@@ -241,12 +328,14 @@ docker compose restart n8n
 
 ## Services
 
-| Service             | URL                                     | Purpose                             |
-| ------------------- | --------------------------------------- | ----------------------------------- |
-| **Supabase Studio** | [localhost:8000](http://localhost:8000) | Database admin & project management |
-| **n8n**             | [localhost:5678](http://localhost:5678) | Workflow builder                    |
-| **AI Chatbots**     | Direct webhook URLs                     | Ready-to-use conversational AI      |
-| **Email Testing**   | [localhost:9000](http://localhost:9000) | Local email server for dev          |
+| Service             | URL                                       | Purpose                             |
+| ------------------- | ----------------------------------------- | ----------------------------------- |
+| **Supabase Studio** | [localhost:3000](http://localhost:3000)   | Database admin & project management |
+| **n8n**             | [localhost:5678](http://localhost:5678)   | Workflow builder                    |
+| **AI Chatbots**     | Direct webhook URLs                       | Ready-to-use conversational AI      |
+| **Email Testing**   | [localhost:9000](http://localhost:9000)\* | Local email server for auth flows   |
+
+\*Only available with `--dev-email` flag
 
 ## 📜 License
 

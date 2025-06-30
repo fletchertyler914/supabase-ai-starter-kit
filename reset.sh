@@ -2,11 +2,16 @@
 
 # Parse command line arguments
 CLEAR_OLLAMA=false
+DEV_EMAIL=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         --clear-ollama)
             CLEAR_OLLAMA=true
+            shift
+            ;;
+        --dev-email)
+            DEV_EMAIL=true
             shift
             ;;
         -h|--help)
@@ -15,11 +20,17 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Options:"
             echo "  --clear-ollama    Also remove Ollama models and volumes (default: preserve)"
+            echo "  --dev-email       Include email server containers in cleanup"
             echo "  -h, --help        Show this help message"
             echo ""
             echo "Examples:"
-            echo "  $0                    # Reset everything but preserve Ollama models"
-            echo "  $0 --clear-ollama     # Reset everything including Ollama models"
+            echo "  $0                              # Standard reset (keep Ollama models)"
+            echo "  $0 --clear-ollama               # Nuclear option (remove everything)"
+            echo "  $0 --dev-email                  # Include email server cleanup"
+            echo "  $0 --clear-ollama --dev-email   # Full cleanup including email server"
+            echo ""
+            echo "Note: This will stop and remove ALL containers from the project,"
+            echo "      regardless of which GPU/CPU profile was used to start them."
             exit 0
             ;;
         *)
@@ -114,17 +125,24 @@ echo ""
 
 # Step 1: Container cleanup
 print_section "🐳 CONTAINER CLEANUP"
+
+# Build compose file arguments
+COMPOSE_FILES="-f docker-compose.yml -f ./dev/docker-compose.dev.yml"
+if [ "$DEV_EMAIL" = true ]; then
+    COMPOSE_FILES="$COMPOSE_FILES -f docker-compose.email.yml"
+fi
+
 print_step "Stopping and removing Docker Compose services..."
 if [ "$CLEAR_OLLAMA" = true ]; then
     # Remove all volumes including Ollama
-    if docker compose -f docker-compose.yml -f ./dev/docker-compose.dev.yml down -v --remove-orphans >/dev/null 2>&1; then
+    if docker compose $COMPOSE_FILES down -v --remove-orphans >/dev/null 2>&1; then
         print_success "Docker Compose services and all volumes removed"
     else
         print_error "Failed to remove some Docker Compose services"
     fi
 else
     # Remove containers but preserve volumes (we'll selectively remove non-Ollama volumes later)
-    if docker compose -f docker-compose.yml -f ./dev/docker-compose.dev.yml down --remove-orphans >/dev/null 2>&1; then
+    if docker compose $COMPOSE_FILES down --remove-orphans >/dev/null 2>&1; then
         print_success "Docker Compose services removed (volumes preserved)"
     else
         print_error "Failed to remove some Docker Compose services"

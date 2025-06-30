@@ -1,0 +1,335 @@
+{
+  "info": {
+    "name": "Supabase AI Starter Kit",
+    "description": "Complete API testing collection for Supabase + n8n + Ollama starter kit. Includes authentication, database operations, and future Kong-n8n integration endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "anon_key",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzUxMDg2ODAwLCJleHAiOjE5MDg4NTMyMDB9.ZvEDn3ykbm4EzNHfU5SG7exKPD1HkK9w_760ZJa63OQ",
+      "type": "string"
+    },
+    {
+      "key": "service_role_key",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3NTEwODY4MDAsImV4cCI6MTkwODg1MzIwMH0.EPcjEp1sYxQLrdOFr-yyX9viqjK-1-dwvfFzHJdVd9I",
+      "type": "string"
+    },
+    {
+      "key": "user_jwt",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "test_email",
+      "value": "test@example.com",
+      "type": "string"
+    },
+    {
+      "key": "test_password",
+      "value": "testpassword123",
+      "type": "string"
+    },
+    {
+      "key": "n8n_url",
+      "value": "http://localhost:5678",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/v1/health",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "v1", "health"]
+            },
+            "description": "Check if Supabase Auth service is healthy"
+          }
+        },
+        {
+          "name": "Sign Up (Email/Password)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"{{test_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/v1/signup",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "v1", "signup"]
+            },
+            "description": "Create a new user account"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.access_token) {",
+                  "        pm.collectionVariables.set('user_jwt', response.access_token);",
+                  "        console.log('JWT saved:', response.access_token);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sign In (Email/Password)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"{{test_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/v1/token?grant_type=password",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "v1", "token"],
+              "query": [
+                {
+                  "key": "grant_type",
+                  "value": "password"
+                }
+              ]
+            },
+            "description": "Sign in existing user and get JWT"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.access_token) {",
+                  "        pm.collectionVariables.set('user_jwt', response.access_token);",
+                  "        console.log('JWT saved:', response.access_token);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_jwt}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/v1/user",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "v1", "user"]
+            },
+            "description": "Get current user profile using JWT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🗄️ Database (PostgREST)",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rest/v1/",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "v1", ""]
+            },
+            "description": "Check if PostgREST service is healthy"
+          }
+        },
+        {
+          "name": "List User Profiles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_jwt}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rest/v1/user_profiles",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "v1", "user_profiles"]
+            },
+            "description": "Get user profiles (requires authentication)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔧 n8n (Current - Direct Access)",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{n8n_url}}/healthz",
+              "host": ["{{n8n_url}}"],
+              "path": ["healthz"]
+            },
+            "description": "Check if n8n service is healthy"
+          }
+        },
+        {
+          "name": "Test Webhook (NodeBot Chat)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Hello from Postman! Can you help me test this workflow?\"\n}"
+            },
+            "url": {
+              "raw": "{{n8n_url}}/webhook/ba65d0a2-7d1d-4efe-9e7a-c41b1031e3bb/chat",
+              "host": ["{{n8n_url}}"],
+              "path": [
+                "webhook",
+                "ba65d0a2-7d1d-4efe-9e7a-c41b1031e3bb",
+                "chat"
+              ]
+            },
+            "description": "Test the NodeBot chat webhook"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🚀 n8n (Future - Kong Secured)",
+      "item": [
+        {
+          "name": "Secured Webhook (Anon Auth)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Testing secured webhook via Kong with anon key\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/webhooks/ba65d0a2-7d1d-4efe-9e7a-c41b1031e3bb/chat",
+              "host": ["{{base_url}}"],
+              "path": [
+                "webhooks",
+                "ba65d0a2-7d1d-4efe-9e7a-c41b1031e3bb",
+                "chat"
+              ]
+            },
+            "description": "Test webhook through Kong with authentication (Task 59)"
+          }
+        },
+        {
+          "name": "n8n Admin API (Service Role)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{service_role_key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/n8n/api/v1/workflows",
+              "host": ["{{base_url}}"],
+              "path": ["n8n", "api", "v1", "workflows"]
+            },
+            "description": "Access n8n management API through Kong (admin only)"
+          }
+        }
+      ]
+    }
+  ]
+}
