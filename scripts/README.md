@@ -1,6 +1,6 @@
 # Project Utility Scripts
 
-This directory contains utility scripts for managing and testing the Supabase project stack.
+This directory contains utility scripts for managing and testing the Supabase AI Starter Kit stack.
 
 ## Available Scripts
 

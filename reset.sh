@@ -16,7 +16,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         -h|--help)
             echo "Usage: $0 [OPTIONS]"
-            echo "Reset the Supabase project to a clean state."
+            echo "Reset the Supabase AI Starter Kit to a clean state."
             echo ""
             echo "Options:"
             echo "  --clear-ollama    Also remove Ollama models and volumes (default: preserve)"
@@ -56,7 +56,7 @@ NC='\033[0m' # No Color
 print_header() {
     echo -e "${PURPLE}"
     echo "╔════════════════════════════════════════════════════════════════════════════════╗"
-    echo "║                            🚨 SUPABASE PROJECT RESET 🚨                       ║"
+    echo "║                            🚨 SUPABASE AI STARTER KIT RESET 🚨                       ║"
     echo "╚════════════════════════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
@@ -262,7 +262,7 @@ echo -e "${GREEN}"
 echo "╔════════════════════════════════════════════════════════════════════════════════╗"
 echo "║                              🎉 CLEANUP COMPLETE! 🎉                           ║"
 echo "╠════════════════════════════════════════════════════════════════════════════════╣"
-echo "║  Your Supabase project has been reset to a clean state.                       ║"
+echo "║  Your Supabase AI Starter Kit has been reset to a clean state.                       ║"
 echo "║                                                                                ║"
 echo "║  Next steps:                                                                   ║"
 echo "║  • Run: docker compose --profile cpu up                                       ║"

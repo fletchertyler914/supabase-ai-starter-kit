@@ -8,6 +8,30 @@ const http = require('http');
 
 // Read environment variables
 const fs = require('fs');
+
+// Check for .env file and copy from .env.example if it doesn't exist
+if (!fs.existsSync('.env')) {
+  if (fs.existsSync('.env.example')) {
+    console.log('📄 .env file not found, copying from .env.example...');
+    try {
+      fs.copyFileSync('.env.example', '.env');
+      console.log('✅ Environment file created from .env.example');
+      console.log(
+        '⚠️  Please review and update the .env file with your actual values before proceeding\n'
+      );
+    } catch (error) {
+      console.error('❌ Failed to copy .env.example to .env:', error.message);
+      process.exit(1);
+    }
+  } else {
+    console.error('❌ .env.example file not found! Cannot create .env file.');
+    console.error(
+      '   Please create a .env file with the required environment variables.'
+    );
+    process.exit(1);
+  }
+}
+
 const envContent = fs.readFileSync('.env', 'utf8');
 const envVars = {};
 envContent.split('\n').forEach((line) => {

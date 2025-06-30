@@ -6,7 +6,7 @@
 #   Stop:               docker compose down
 #   Reset everything:   ./reset.sh [--clear-ollama] [--dev-email]
 
-name: supabase
+name: supabase-ai-starter-kit
 
 networks:
   supastar:

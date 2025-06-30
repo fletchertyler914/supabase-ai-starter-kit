@@ -7,6 +7,23 @@ echo "🔍 Docker Stack Health Check"
 echo "=============================="
 
 # Load environment variables
+if [ ! -f .env ]; then
+    if [ -f ".env.example" ]; then
+        echo "📄 .env file not found, copying from .env.example..."
+        if cp .env.example .env 2>/dev/null; then
+            echo "✅ Environment file created from .env.example"
+            echo "⚠️  Please review and update the .env file with your actual values"
+        else
+            echo "❌ Failed to copy .env.example to .env"
+            exit 1
+        fi
+    else
+        echo "❌ .env.example file not found! Cannot create .env file."
+        echo "   Please create a .env file with the required environment variables."
+        exit 1
+    fi
+fi
+
 if [ -f .env ]; then
     # Load environment variables while avoiding issues with comments
     while IFS= read -r line; do

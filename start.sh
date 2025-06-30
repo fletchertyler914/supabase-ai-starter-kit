@@ -29,7 +29,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         -h|--help)
             echo "Usage: $0 [OPTIONS]"
-            echo "Start the Supabase project services."
+            echo "Start the Supabase AI Starter Kit services."
             echo ""
             echo "Options:"
             echo "  --dev-email       Include the development email server (inbucket)"
@@ -78,6 +78,24 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Check for .env file and copy from .env.example if it doesn't exist
+if [ ! -f ".env" ]; then
+    if [ -f ".env.example" ]; then
+        echo "📄 .env file not found, copying from .env.example..."
+        if cp .env.example .env 2>/dev/null; then
+            echo "✅ Environment file created from .env.example"
+            echo "⚠️  Please review and update the .env file with your actual values before proceeding"
+        else
+            echo "❌ Failed to copy .env.example to .env"
+            exit 1
+        fi
+    else
+        echo "❌ .env.example file not found! Cannot create .env file."
+        echo "   Please create a .env file with the required environment variables."
+        exit 1
+    fi
+fi
+
 # No default profile - if none specified, run without Ollama containers
 # This expects Ollama to be running externally on the host
 
@@ -88,7 +106,7 @@ YELLOW='\033[1;33m'
 PURPLE='\033[0;35m'
 NC='\033[0m' # No Color
 
-echo -e "${PURPLE}🚀 Starting Supabase Project...${NC}"
+echo -e "${PURPLE}🚀 Starting Supabase AI Starter Kit...${NC}"
 
 # Build compose file arguments
 COMPOSE_FILES="-f docker-compose.yml"

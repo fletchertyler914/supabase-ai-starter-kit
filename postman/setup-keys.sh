@@ -7,13 +7,30 @@ echo "🔑 Supabase API Keys for Postman Setup"
 echo "======================================"
 echo ""
 
-if [[ ! -f .env ]]; then
+if [[ ! -f ../.env ]]; then
+    if [[ -f "../.env.example" ]]; then
+        echo "📄 .env file not found, copying from .env.example..."
+        if cp ../.env.example ../.env 2>/dev/null; then
+            echo "✅ Environment file created from .env.example"
+            echo "⚠️  Please review and update the .env file with your actual values before proceeding"
+        else
+            echo "❌ Failed to copy .env.example to .env"
+            exit 1
+        fi
+    else
+        echo "❌ .env.example file not found! Cannot create .env file."
+        echo "   Please create a .env file with the required environment variables."
+        exit 1
+    fi
+fi
+
+if [[ ! -f ../.env ]]; then
     echo "❌ .env file not found!"
     exit 1
 fi
 
-ANON_KEY=$(grep ANON_KEY .env | cut -d'=' -f2)
-SERVICE_KEY=$(grep SERVICE_ROLE_KEY .env | cut -d'=' -f2)
+ANON_KEY=$(grep ANON_KEY ../.env | cut -d'=' -f2)
+SERVICE_KEY=$(grep SERVICE_ROLE_KEY ../.env | cut -d'=' -f2)
 
 if [[ -z "$ANON_KEY" ]]; then
     echo "❌ ANON_KEY not found in .env file"
