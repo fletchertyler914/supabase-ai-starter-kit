@@ -2,366 +2,550 @@
 
 # Supabase AI Starter Kit
 
-> **Build AI that scales. Ship in a weekend, iterate forever.**
+> **Production-ready AI infrastructure. Ship in hours, not weeks.**
 
-An open-source Docker Compose template that gets you from idea to AI-powered app in minutes, not months. Built for the builders, hackers, and 100x developers who move fast and ship things.
+An open-source, Infrastructure-as-Code template that gets you from AI concept to working application in minutes. Built for developers, AI engineers, and teams who need to move fast without sacrificing production quality.
 
 ![Supabase](https://img.shields.io/badge/supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
+![Kong](https://img.shields.io/badge/kong-003459?style=for-the-badge&logo=kong&logoColor=white)
 ![n8n](https://img.shields.io/badge/n8n-EA4B71?style=for-the-badge&logo=n8n&logoColor=white)
-![Ollama](https://img.shields.io/badge/ollama-000000?style=for-the-badge&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/postgresql-336791?style=for-the-badge&logo=postgresql&logoColor=white)
 
-Inspired by the [n8n AI starter kit](https://github.com/n8n-io/self-hosted-ai-starter-kit), but supercharged with Supabase's complete backend platform.
+**Infrastructure-as-Code. No Supabase Studio required. Everything in Docker.**
 
-## What's included
+## 🚀 What You Get
 
-✅ **[Supabase](https://supabase.com/)** - PostgreSQL + Auth + Realtime + Edge Functions + pgvector  
-✅ **[n8n](https://n8n.io/)** - Visual workflow automation with 400+ integrations  
-✅ **[Ollama](https://ollama.com/)** - Local LLMs that actually work in production  
-✅ **Pre-built AI chatbots** - Ready to use, zero configuration required
+### ⚡ **Complete AI-Ready Backend**
 
-## What you can build
+- **PostgreSQL + pgvector** - Vector database for embeddings and semantic search
+- **Supabase Auth** - Email/password authentication with email confirmation
+- **Kong API Gateway** - Professional API management and routing
+- **Real-time Features** - WebSocket subscriptions for live AI interactions
+- **Edge Functions** - Serverless TypeScript functions for AI processing
+- **File Storage** - Supabase Storage for AI training data and media
 
-⭐️ **AI-powered customer support** with your company docs  
-⭐️ **Smart document processing** workflows that never leak data  
-⭐️ **Local RAG systems** with vector search and semantic retrieval  
-⭐️ **Automated content generation** pipelines for marketing teams
+### 🧠 **AI Integration Platform**
 
-## 🚀 Common Commands
+- **n8n Workflows** - Visual automation for AI pipelines and integrations
+- **Vector Search** - Semantic search and RAG (Retrieval Augmented Generation)
+- **AI Model Connectors** - Pre-configured for OpenAI, Anthropic, Ollama, and more
+- **Batch Processing** - Background jobs for training and large-scale operations
+- **Real-time AI** - Streaming responses and live AI interactions
 
-**Start (choose your setup):**
+### 🛠️ **Developer Experience**
 
-```bash
-# Ollama modes
-./start.sh                              # Host machine Ollama (fastest for Mac/Apple Silicon)
-./start.sh --cpu                        # Containerized CPU Ollama
-./start.sh --gpu-nvidia                 # Containerized NVIDIA GPU Ollama
-./start.sh --gpu-amd                    # Containerized AMD GPU Ollama
+- **Complete Testing Suite** - Postman collections, Node.js scripts, health checks
+- **Development Email** - Inbucket for testing auth flows without external SMTP
+- **Infrastructure-as-Code** - Everything configured via Docker and environment files
+- **Task Management** - Taskmaster integration for AI-powered project planning
+- **Zero External Dependencies** - No Supabase Studio or cloud services required
 
-# With email server for auth testing
-./start.sh --dev-email                  # Host Ollama + email server
-./start.sh --cpu --dev-email            # CPU Ollama + email server
-./start.sh --gpu-nvidia --dev-email     # NVIDIA GPU Ollama + email server
-./start.sh --gpu-amd --dev-email        # AMD GPU Ollama + email server
+## 🎯 What You Can Build
 
-# Background mode (detached)
-./start.sh --detach                     # Host Ollama and run everything in background
-./start.sh --cpu --detach               # CPU Ollama in background
-./start.sh --gpu-nvidia --detach        # NVIDIA GPU Ollama in background
-./start.sh --gpu-amd --detach           # AMD GPU Ollama in background
+### 🤖 **AI Chatbots & Assistants**
 
-# Full combinations
-./start.sh --gpu-nvidia --dev-email --detach  # NVIDIA + email + background
-./start.sh --gpu-amd --dev-email --detach     # AMD + email + background
-./start.sh --cpu --dev-email --detach         # CPU + email + background
-```
+- Customer support bots with company knowledge
+- Technical documentation assistants
+- Multi-user chat applications with context
+- Real-time conversational AI with memory
 
-**Reset (cleanup options):**
+### 📊 **AI Analytics & Insights**
 
-```bash
-./reset.sh                              # Standard reset (keep Ollama models)
-./reset.sh --clear-ollama               # Nuclear option (remove everything)
-./reset.sh --dev-email                  # Include email server cleanup
-./reset.sh --clear-ollama --dev-email   # Full cleanup including email server
-```
+- Intelligent data processing pipelines
+- Semantic search across documents and data
+- Real-time AI-powered dashboards
+- Automated report generation and insights
 
-**Stop:**
+### 🎨 **AI Content Generation**
 
-```bash
-docker compose down                     # Stop all services gracefully
-```
+- Text, image, and media generation workflows
+- Content approval and review systems
+- Template-based generation with customization
+- Multi-step creative pipelines
 
-## Installation & Quick Start
+### 🔍 **AI-Powered Search & Discovery**
 
-**Zero-config startup in 60 seconds** ⚡
+- Vector search across any content type
+- Personalized recommendation engines
+- Intelligent content categorization
+- Semantic similarity and clustering
 
-### 1. Clone the Repository
+## 🚀 Quick Start (60 seconds)
+
+### **1-Minute AI Project Setup** ⚡
 
 ```bash
+# Clone and instantly set up your AI project with intelligent planning
 git clone https://github.com/fletchertyler914/supabase-ai-starter-kit.git
 cd supabase-ai-starter-kit
+./setup-taskmaster.sh
 ```
 
-### 2. Start Everything
+🎯 **The setup script automatically:**
 
-**With external Ollama (fastest for Mac/Apple Silicon):**
+- ✨ Initializes AI-powered project planning with Taskmaster
+- 📋 Helps you create a Product Requirements Document (PRD) tailored to your AI use case
+- 🗺️ Generates a complete task roadmap with dependencies and priorities
+- 🚀 Sets up development workflow with intelligent task management
+- 🤖 Provides AI guidance for implementation and progress tracking
+
+> **What makes this special?** Instead of starting with a blank project, you get a personalized development plan that evolves as you build. The AI understands your requirements and breaks them into manageable, ordered tasks.
+
+### **Start Your Infrastructure**
 
 ```bash
-./start.sh                    # Expects Ollama running on host
+# Start core services
+docker-compose up -d
+
+# For development with email testing
+docker-compose -f docker-compose.yml -f dev/docker-compose.dev.yml up -d
+
+# Connect email service to network (if using dev email)
+docker network connect supabase_supastar supabase-mail
 ```
 
-**With containerized Ollama:**
+### **Validate Everything Works**
 
 ```bash
-./start.sh --cpu              # CPU-only container
-./start.sh --gpu-nvidia       # NVIDIA GPU container
-./start.sh --gpu-amd          # AMD GPU container
+# Run health checks
+./scripts/health-check.sh
+
+# Test authentication flow
+node test-auth-complete.js
 ```
 
-**With email testing:**
+### **Your AI Development Hub**
+
+- 🚪 **Kong API Gateway**: http://localhost:8000 (Main entry point)
+- 🔄 **n8n AI Workflows**: http://localhost:5678 (Visual AI automation)
+- 📧 **Email Testing**: http://localhost:9000 (Development emails)
+
+### **Start Building with AI Guidance**
 
 ```bash
-./start.sh --dev-email --gpu-nvidia
+task-master list           # View your AI project tasks
+task-master next           # Get next task to work on
+task-master show 1         # See detailed task requirements
+task-master expand 1       # Break down complex tasks
 ```
 
-> [!NOTE]
-> For NVIDIA GPU users: If you haven't used your GPU with Docker before, follow the [Ollama Docker instructions](https://github.com/ollama/ollama/blob/main/docs/docker.md) first.
+**That's it!** You now have production-ready AI infrastructure + intelligent project planning.
 
-### 3. For Mac / Apple Silicon Users
+## 🌐 Service Architecture
 
-Macs can't expose GPU to Docker containers, so you have two options:
+| Service              | URL                                     | Purpose                                 |
+| -------------------- | --------------------------------------- | --------------------------------------- |
+| **Kong API Gateway** | [localhost:8000](http://localhost:8000) | Main API entry point, routing, security |
+| **n8n Workflows**    | [localhost:5678](http://localhost:5678) | Visual AI workflow automation           |
+| **Email Testing**    | [localhost:9000](http://localhost:9000) | Development email server (dev mode)     |
+| **Supabase Auth**    | localhost:8000/auth/v1/\*               | Authentication endpoints via Kong       |
+| **PostgREST API**    | localhost:8000/rest/v1/\*               | Database REST API via Kong              |
+| **Realtime**         | localhost:8000/realtime/v1/\*           | WebSocket connections via Kong          |
 
-**Option 1: External Ollama (Recommended - faster performance)**
+### 🏗️ Core Infrastructure
 
-First, install Ollama locally:
+```
+┌─ Kong API Gateway (8000) ────────────────────────────┐
+│                                                      │
+├─ Auth Service (/auth/v1/*)                          │
+├─ REST API (/rest/v1/*)                              │
+├─ Realtime (/realtime/v1/*)                          │
+├─ Storage (/storage/v1/*)                            │
+└─ Functions (/functions/v1/*)                        │
+
+┌─ AI & Automation ───────────────────────────────────┐
+│                                                      │
+├─ n8n Workflows (5678)                               │
+├─ PostgreSQL + pgvector                              │
+├─ Background Processing                               │
+└─ AI Model Integrations                              │
+
+┌─ Development Tools ─────────────────────────────────┐
+│                                                      │
+├─ Inbucket Email (9000)                              │
+├─ Postman Collections                                │
+├─ Health Check Scripts                               │
+└─ Authentication Tests                               │
+```
+
+## 🧪 Built-in Testing & Validation
+
+### **Complete Test Suite**
+
+- **Postman Collections** - All API endpoints with environment variables
+- **Authentication Tests** - Full signup/signin/confirmation flow
+- **Health Checks** - Service monitoring and connectivity validation
+- **Integration Tests** - End-to-end workflow validation
+
+### **Test Authentication Flow**
 
 ```bash
-# Install Ollama
-curl -fsSL https://ollama.com/install.sh | sh
+# Test complete auth flow with email confirmation
+node test-auth-complete.js
 
-# Start Ollama and pull models
-ollama serve &
-ollama pull llama3.2:1b
-ollama pull nomic-embed-text
+# Test direct auth service (bypass Kong)
+node test-auth-direct.js
+
+# Basic auth functionality
+node test-auth.js
 ```
 
-Then start the kit (uses external Ollama):
+### **API Testing with Postman**
 
 ```bash
-export OLLAMA_HOST=host.docker.internal:11434
-./start.sh                    # External Ollama mode
-./start.sh --dev-email        # With email server
+# Import collections (pre-configured)
+# 1. Open Postman
+# 2. Import: postman/Supabase-AI-Starter-Kit.postman_collection.json
+# 3. Import: postman/Supabase-AI-Starter-Kit.postman_environment.json
+# 4. Configure environment variables with your keys
+
+# Or setup keys automatically
+cd postman && ./setup-keys.sh
 ```
 
-**Option 2: Containerized CPU Ollama (Simpler but slower)**
+## 🧠 AI Development Patterns
 
-```bash
-./start.sh --cpu              # Containerized CPU Ollama
-./start.sh --cpu --dev-email  # With email server
-```
-
-<details>
-<summary><strong>🔧 Advanced: Direct Docker Compose Commands</strong></summary>
-
-If you prefer the traditional approach:
-
-```bash
-# CPU only
-docker compose --profile cpu up
-
-# NVIDIA GPU
-docker compose --profile gpu-nvidia up
-
-# AMD GPU
-docker compose --profile gpu-amd up
-
-# With email server
-docker compose -f docker-compose.yml -f docker-compose.email.yml --profile cpu up
-```
-
-</details>
-
-## ⚡️ Quick start and usage
-
-After completing the installation steps above, follow these steps to get started:
-
-1. **Open [http://localhost:5678/](http://localhost:5678/)** in your browser to set up n8n. You'll only have to do this once.
-2. **Navigate to the included workflows** - they're automatically imported and activated
-3. **Click the direct chat link** to start using the AI chatbot immediately:
-   - **NodeBot**: [http://localhost:5678/webhook/ba65d0a2-7d1d-4efe-9e7a-c41b1031e3bb/chat](http://localhost:5678/webhook/ba65d0a2-7d1d-4efe-9e7a-c41b1031e3bb/chat)
-4. **If this is your first time**, you may need to wait while Ollama downloads the `llama3.2:1b` model. You can inspect the Docker console logs to check progress.
-
-To open n8n at any time, visit [http://localhost:5678/](http://localhost:5678/) in your browser.
-
-With your n8n instance, you'll have access to over 400 integrations and a suite of basic and advanced AI nodes such as [AI Agent](https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent/), [Text classifier](https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.text-classifier/), and [Information Extractor](https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.information-extractor/) nodes. To keep everything local, just remember to use the Ollama node for your language model and PostgreSQL with pgvector for embeddings.
-
-## What you get out of the box
-
-### 🤖 **Instant AI Chatbots**
-
-Pre-built workflows that work immediately:
-
-- **"NodeBot"** - A technical AI assistant pre-trained on Supabase, n8n, and Ollama workflows
-- soon™️...
-
-> ✨ **Workflows are automatically activated!**
-> The chat links work immediately after startup.
-
-> ✨ **Workflow changes auto-save!** Modify workflows in the n8n UI and they are stored in supabase under the `n8n` schema.
-
-### ⚡ **Vector Search Ready**
-
-PostgreSQL with pgvector extension pre-configured. No setup, no fuss:
+### **Vector Search & RAG**
 
 ```sql
--- Create your table
+-- PostgreSQL with pgvector is ready for AI embeddings
 CREATE TABLE documents (
-  id SERIAL PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   content TEXT,
   embedding VECTOR(1536),
-  metadata JSONB DEFAULT '{}'
+  metadata JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Search semantically
-SELECT content, cosine_similarity(embedding, '[...]'::vector) as similarity
+-- Semantic search example
+SELECT content, 1 - (embedding <=> '[0.1,0.2,...]'::vector) as similarity
 FROM documents
-ORDER BY embedding <=> '[...]'::vector
+ORDER BY embedding <=> '[0.1,0.2,...]'::vector
 LIMIT 5;
 ```
 
-### 🔐 **Auth & Realtime Built-in**
+### **n8n AI Workflows**
 
-User management, real-time subscriptions, and APIs auto-generated. Because life's too short to build auth from scratch.
+- **Pre-configured integrations** for OpenAI, Anthropic, Hugging Face
+- **Vector database nodes** for embeddings and similarity search
+- **Webhook endpoints** for real-time AI processing
+- **Background jobs** for batch AI operations
+- **Template workflows** for common AI patterns
 
-## Key Differentiators
+### **Real-time AI Features**
 
-| Feature                | n8n Starter Kit | Supabase AI Starter Kit                |
-| ---------------------- | --------------- | -------------------------------------- |
-| **Vector Storage**     | Qdrant          | PostgreSQL + pgvector                  |
-| **Authentication**     | ❌              | ✅ Built-in auth with social providers |
-| **Real-time Features** | ❌              | ✅ WebSocket subscriptions             |
-| **Edge Functions**     | ❌              | ✅ Serverless TypeScript functions     |
-| **Database Admin**     | ❌              | ✅ Supabase Studio interface           |
-| **Email Testing**      | ❌              | ✅ Local email server for dev          |
-| **Pre-built Chatbots** | ❌              | ✅ Working chatbot out of the box      |
+```javascript
+// WebSocket connection for streaming AI responses
+import { createClient } from '@supabase/supabase-js';
 
-## 🔧 For the Tinkerers
+const supabase = createClient('http://localhost:8000', 'your-anon-key');
 
-### Email Testing Server
-
-Test authentication flows with a local email server:
-
-```bash
-./start.sh --dev-email
+// Subscribe to real-time AI updates
+supabase
+  .channel('ai-responses')
+  .on(
+    'postgres_changes',
+    { event: 'INSERT', schema: 'public', table: 'ai_responses' },
+    (payload) => console.log('New AI response:', payload.new)
+  )
+  .subscribe();
 ```
 
-Access the email interface at [localhost:9000](http://localhost:9000) to view OTP emails and auth flows.
+## 🛠️ Development Workflow
 
-### Adding More Ollama Models
-
-**Before starting containers** (add to `.env` file):
+### **With Taskmaster (AI-Powered Planning)** 🤖
 
 ```bash
-# Comma-separated list of models to pull automatically
-# Default: llama3.2:1b,nomic-embed-text
-OLLAMA_DEFAULT_MODELS=llama3.2:1b,nomic-embed-text,llama3.2:3b,codellama:7b
+# Auto-setup with intelligent guidance (recommended)
+./setup-taskmaster.sh
+
+# Manual setup for existing projects
+npx task-master-ai init --rules cursor --name="My AI Project"
+task-master parse-prd requirements.txt
+
+# AI-powered development workflow
+task-master list              # See all tasks for your AI project
+task-master next              # Get next task with dependencies resolved
+task-master show 5            # View detailed implementation requirements
+task-master expand 5          # Break complex tasks into subtasks
+task-master update-subtask 5.1 --prompt="Implementation progress..."
+task-master set-status 5.1 done
 ```
 
-**After containers are running:**
+### **Standard Docker Workflow**
 
 ```bash
-# Pull additional models manually
-docker exec ollama-cpu ollama pull llama3.2:3b
-docker exec ollama-cpu ollama pull codellama:7b
+# Development with email testing
+docker-compose -f docker-compose.yml -f dev/docker-compose.dev.yml up -d
 
-# Or for GPU containers
-docker exec ollama-gpu ollama pull llama3.2:3b
+# Production-like setup
+docker-compose up -d
 
-# List available models
-docker exec ollama-cpu ollama list
-```
+# View logs
+docker-compose logs -f [service-name]
 
-## Upgrading
-
-**Simple two-step upgrade:**
-
-```bash
-# Step 1: Reset to clean state
+# Reset and clean restart
 ./reset.sh
-
-# Step 2: Start with latest images
-./start.sh --gpu-nvidia  # or --cpu, --gpu-amd, etc.
 ```
 
-**That's it!** The reset pulls fresh images automatically.
+## 🔧 Configuration & Customization
 
-<details>
-<summary><strong>🔧 Advanced: Manual Docker Compose Upgrade</strong></summary>
+### **Environment Variables**
+
+Key settings in `.env`:
 
 ```bash
-# Pull latest images first
-docker compose --profile gpu-nvidia pull
+# Database
+POSTGRES_PASSWORD=your-super-secret-jwt-token-with-at-least-32-characters-long
 
-# Recreate and start
-docker compose create && docker compose --profile gpu-nvidia up
+# Authentication
+ENABLE_EMAIL_SIGNUP=true
+ENABLE_EMAIL_AUTOCONFIRM=false  # Set true for development
+DISABLE_SIGNUP=false
+
+# SMTP (for production)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+
+# AI Service Keys (add as needed)
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+PERPLEXITY_API_KEY=pplx-...
 ```
 
-</details>
-
-## Troubleshooting
-
-**Workflows appear inactive?** If imported workflows don't activate automatically:
+### **AI Model Configuration**
 
 ```bash
-# Manually activate all workflows
-docker exec n8n n8n update:workflow --all --active=true
+# Configure AI models with Taskmaster
+task-master models --setup
 
-# Then restart the container
-docker compose restart n8n
+# Or set specific models
+task-master models --set-main=claude-3-5-sonnet-20241022
+task-master models --set-research=gpt-4o
+task-master models --set-fallback=claude-3-haiku-20240307
 ```
 
-**Need a clean slate?** Reset everything with one command:
+## 🔐 Security & Production Features
+
+### **Built-in Security**
+
+- **JWT Authentication** - Secure token-based auth with proper expiration
+- **Row Level Security** - Database-level authorization for multi-tenancy
+- **API Gateway** - Kong providing rate limiting and access control
+- **Environment Isolation** - Secure configuration management
+- **Network Security** - Proper Docker networking and service isolation
+
+### **Production Ready**
+
+- **Connection Pooling** - PgBouncer for database performance
+- **Health Monitoring** - Comprehensive service health checks
+- **Logging Infrastructure** - Audit trails and error tracking
+- **Data Persistence** - Proper volume management for production data
+- **Backup Strategy** - Database persistence and recovery patterns
+
+## 🎯 AI Use Case Examples
+
+### **Chatbot with Memory**
+
+1. **User authentication** via Kong gateway
+2. **Conversation storage** in PostgreSQL
+3. **Vector search** for context retrieval
+4. **n8n workflow** for AI processing
+5. **Real-time responses** via WebSocket
+
+### **Document Analysis Pipeline**
+
+1. **File upload** to Supabase Storage
+2. **Background processing** via n8n workflows
+3. **Vector embeddings** generated and stored
+4. **Search API** for semantic queries
+5. **Real-time results** via subscriptions
+
+### **Content Generation System**
+
+1. **Template management** in database
+2. **Generation workflows** in n8n
+3. **Approval processes** with user roles
+4. **Version control** with audit trails
+5. **API endpoints** for integration
+
+## 📊 Performance & Scaling
+
+### **Optimized for AI Workloads**
+
+- **pgvector** configured for efficient similarity search
+- **Connection pooling** via PgBouncer for high concurrency
+- **Background processing** for expensive AI operations
+- **Caching strategies** built into Kong gateway
+- **Resource isolation** via Docker containers
+
+### **Horizontal Scaling Ready**
+
+- **Stateless services** for easy horizontal scaling
+- **Database connection pooling** for multiple instances
+- **Load balancing** via Kong gateway
+- **Microservices architecture** with clear service boundaries
+
+## 🚀 Deployment Options
+
+### **Development**
+
+- **Local Docker** - Full stack on your machine
+- **Development email** - Inbucket for testing auth flows
+- **Hot reloading** - Live development with instant feedback
+
+### **Production**
+
+- **Docker Compose** - Single-server deployment
+- **Environment management** - Production-ready configuration
+- **Health monitoring** - Built-in service monitoring
+- **SSL/TLS ready** - HTTPS configuration templates
+
+## 🔄 Migration & Upgrades
+
+### **Easy Updates**
 
 ```bash
-# Standard reset (preserves Ollama models)
-./reset.sh
-
-# Nuclear option (removes everything including models)
-./reset.sh --clear-ollama
-
-# Include email server cleanup
-./reset.sh --dev-email
-
-# See all options
-./reset.sh --help
+# Simple upgrade process
+./reset.sh              # Clean state
+docker-compose pull     # Latest images
+docker-compose up -d    # Restart with updates
 ```
 
-**After reset, restart with your preferred setup:**
+### **Data Migration**
+
+- **PostgreSQL dumps** for data backup/restore
+- **Volume persistence** maintains data across updates
+- **Schema migrations** via SQL scripts
+- **n8n workflows** exported/imported automatically
+
+## 🤝 AI Agent Integration
+
+### **Built for AI Collaboration**
+
+- **Taskmaster integration** - AI-powered project planning and management
+- **Clear extension points** - Add AI capabilities without breaking existing code
+- **Modular architecture** - Mix and match components as needed
+- **Rule-based development** - Consistent patterns for AI assistant guidance
+
+### **Development Patterns**
+
+- **Infrastructure-as-Code** - No manual setup or configuration
+- **Testing automation** - Comprehensive validation for CI/CD
+- **Documentation as code** - Self-documenting APIs and services
+- **Extension templates** - Clear patterns for adding new AI features
+
+## 📚 Documentation & Resources
+
+### **Getting Started Guides**
+
+- [**Authentication Setup**](./postman/README.md) - Complete auth flow setup
+- [**API Testing**](./scripts/README.md) - Testing and validation
+- [**n8n Workflows**](./n8n/README.md) - AI automation patterns
+- [**Database Schema**](./volumes/db/) - PostgreSQL setup and extensions
+
+### **Advanced Topics**
+
+- [**Production Deployment**](./DEPLOYMENT.md) - Production setup and configuration
+- [**Security Best Practices**](./SECURITY.md) - Security hardening and compliance
+- [**Performance Tuning**](./PERFORMANCE.md) - Optimization and scaling
+- [**Troubleshooting Guide**](./TROUBLESHOOTING.md) - Common issues and solutions
+
+## 🛟 Troubleshooting
+
+### **Common Issues**
+
+**Services not starting?**
 
 ```bash
-./start.sh --gpu-nvidia --dev-email  # or your preferred flags
+# Check service status
+docker-compose ps
+
+# View logs
+docker-compose logs -f
+
+# Reset and restart
+./reset.sh && docker-compose up -d
 ```
 
-**Chat links not working?** Make sure you've completed the initial n8n setup at [http://localhost:5678/](http://localhost:5678/) first.
+**Authentication failing?**
 
-> [NOTE]
-> This starter kit is designed to help you get started with self-hosted AI workflows. While it's not fully optimized for production environments, it combines robust, battle-tested components that work well together for proof-of-concept projects and rapid prototyping. You can customize it to meet your specific needs.
+```bash
+# Test auth flow
+node test-auth-complete.js
 
-## Services
+# Check email service (dev mode)
+open http://localhost:9000
 
-| Service             | URL                                       | Purpose                             |
-| ------------------- | ----------------------------------------- | ----------------------------------- |
-| **Supabase Studio** | [localhost:3000](http://localhost:3000)   | Database admin & project management |
-| **n8n**             | [localhost:5678](http://localhost:5678)   | Workflow builder                    |
-| **AI Chatbots**     | Direct webhook URLs                       | Ready-to-use conversational AI      |
-| **Email Testing**   | [localhost:9000](http://localhost:9000)\* | Local email server for auth flows   |
+# Verify Kong routing
+curl http://localhost:8000/auth/v1/health
+```
 
-\*Only available with `--dev-email` flag
+**n8n workflows not working?**
 
-## 📜 License
+```bash
+# Restart n8n service
+docker-compose restart n8n
+
+# Check n8n logs
+docker-compose logs -f n8n
+
+# Access n8n interface
+open http://localhost:5678
+```
+
+### **Reset Options**
+
+```bash
+./reset.sh                    # Standard reset
+./reset.sh --help             # See all options
+```
+
+## 📈 What's Next?
+
+### **Extend Your AI App**
+
+1. **Add your AI models** - Configure OpenAI, Anthropic, or local models
+2. **Build custom workflows** - Use n8n for complex AI pipelines
+3. **Create your database schema** - Add domain-specific tables
+4. **Deploy to production** - Use provided Docker Compose setup
+5. **Scale horizontally** - Add more service instances as needed
+
+### **Community Features**
+
+- **Workflow templates** - Share n8n AI automation patterns
+- **Schema patterns** - Database designs for common AI use cases
+- **Integration guides** - Step-by-step guides for popular AI services
+- **Performance benchmarks** - Reference implementations and metrics
+
+## 🤝 Contributing
+
+We welcome contributions! Whether you're:
+
+- **Fixing bugs** or improving documentation
+- **Adding new AI workflow templates**
+- **Sharing use case examples**
+- **Improving performance or security**
+
+Check out our [Contributing Guidelines](./CONTRIBUTING.md) to get started.
+
+## 📄 License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
 
-## Why This Exists
+## 🌟 Why This Exists
 
-Every weekend warrior and side-project hero has been there: you have a brilliant AI idea, but you spend 6 hours wrestling with Docker configs instead of building. This starter kit is for the builders who want to spend their time creating, not configuring.
+AI development shouldn't start with weeks of infrastructure setup. This starter kit eliminates the typical 2-4 weeks of backend work so you can focus on building intelligent features, not configuring services.
 
-**What would you build if setup took 60 seconds instead of 6 hours?**
+**Start building AI applications in hours, not weeks.**
 
-## Contributing
+---
 
-**We'd love your help making this even better!** 🙌
+**Built with ❤️ for the AI development community**
 
-- **Found a bug?** [Open an issue](https://github.com/fletchertyler914/supabase-ai-starter-kit/issues)
-- **Have an idea?** [Start a discussion](https://github.com/fletchertyler914/supabase-ai-starter-kit/discussions) or submit a PR
-- **Built something cool?** Share your workflows and demos
-- **Improved the docs?** Documentation PRs are always welcome
-
-Whether you're fixing typos, adding features, or sharing workflows - every contribution makes this better for the community.
-
-## Community & Support
-
-Built with ❤️ by developers, for developers.
-
-- **Issues & Questions**: [GitHub Issues](https://github.com/fletchertyler914/supabase-ai-starter-kit/issues)
-- **Supabase Community**: [Discord](https://discord.supabase.com/)
-- **n8n Community**: [Forum](https://community.n8n.io/)
+- **Issues & Support**: [GitHub Issues](https://github.com/fletchertyler914/supabase-ai-starter-kit/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/fletchertyler914/supabase-ai-starter-kit/discussions)
+- **Community**: [Supabase Discord](https://discord.supabase.com/) | [n8n Community](https://community.n8n.io/)

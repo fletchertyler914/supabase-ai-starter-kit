@@ -1,126 +1,77 @@
-# Supabase Starter Kit - PRD
+# AI Application - Product Requirements Document
 
-## Project Purpose
+## Project Vision
+[Describe your AI application idea in 2-3 sentences]
 
-A production-ready Supabase starter kit that developers and AI agents can clone and immediately start building on. This eliminates the typical 1-2 weeks of backend setup and gets you straight to building features.
+## Target Users
+[Who will use this AI application?]
 
-## What This Starter Kit Provides
+## Core AI Features
+[What AI capabilities will your application provide?]
+- [ ] Chatbot/Conversational AI
+- [ ] Document/Text Analysis  
+- [ ] Content Generation
+- [ ] Data Processing/Analytics
+- [ ] Image/Media Processing
+- [ ] Search/Recommendation Engine
+- [ ] Other: [specify]
 
-### Ready-to-Run Stack
-- **Supabase Database** - PostgreSQL with all the extensions configured
-- **Authentication** - User signup/login working out of the box
-- **API Layer** - REST and GraphQL endpoints auto-generated
-- **Real-time** - WebSocket connections for live updates
-- **Storage** - File uploads and CDN ready
-- **Edge Functions** - Serverless functions for custom logic
-- **Workflows** - n8n integration for background jobs
+## Technical Requirements
 
-### Development Ready
-- **Docker Setup** - Everything runs with `docker-compose up`
-- **Local Development** - Hot reloading and development tools
-- **Environment Management** - Proper env var handling
-- **Database Scripts** - All the SQL setup files organized
+### AI Models/Services
+- [ ] OpenAI GPT (ChatGPT API)
+- [ ] Anthropic Claude
+- [ ] Local LLMs (Ollama)
+- [ ] Vector Embeddings for Search
+- [ ] Custom ML Models
+- [ ] Other: [specify]
 
-## Current State (What Exists)
+### Data & Storage
+- [ ] User-generated content
+- [ ] Document storage and processing
+- [ ] Vector database for embeddings
+- [ ] Real-time data streams
+- [ ] File uploads (images, documents)
+- [ ] Other: [specify]
 
-### Database Layer ✅
-- `roles.sql` - User roles and permissions
-- `jwt.sql` - JWT token configuration  
-- `realtime.sql` - Real-time subscriptions
-- `vector.sql` - Vector database for AI/search
-- `webhooks.sql` - Webhook system
-- `logs.sql` - Logging infrastructure
-- `pooler.sql` - Connection pooling setup
+### User Interface
+- [ ] Web application (React/Next.js)
+- [ ] Mobile app
+- [ ] API-only service
+- [ ] Admin dashboard
+- [ ] Chatbot interface
+- [ ] Other: [specify]
 
-### Infrastructure ✅  
-- `docker-compose.yml` - Main services
-- `docker-compose.dev.yml` - Development config
-- `docker-compose.s3.yml` - Storage setup
-- `volumes/` - All the configuration files
-- `reset.sh` - Reset script for development
-
-### Functions ✅
-- `hello/` - Basic function example
-- `main/` - Primary business logic handler
-
-### Workflows ✅
-- n8n demo workflows and credentials ready to go
-
-## What Needs Work
-
-### Core Functionality
-1. **Verify Docker Stack Works** - Make sure all services start and talk to each other
-2. **Database Scripts Integration** - Ensure all SQL files work together properly
-3. **Authentication Flow** - Configure Supabase auth with basic providers
-4. **API Gateway** - Get Kong working with proper routing
-5. **Edge Functions** - Make sure functions deploy and run correctly
-
-### Developer Experience  
-1. **Environment Setup** - Clean up env var management
-2. **Database Initialization** - Automated setup on first run
-3. **Basic Monitoring** - Health checks so you know if things are broken
-4. **Error Handling** - Proper error responses instead of crashes
-
-### Production Readiness
-1. **Security Basics** - SSL, secrets management, basic hardening
-2. **Performance** - Connection pooling working, basic caching
-3. **Backup Strategy** - Simple database backup solution
+### Integration Requirements
+- [ ] Third-party APIs
+- [ ] Webhook integrations
+- [ ] Email notifications
+- [ ] Payment processing
+- [ ] Social media integration
+- [ ] Other: [specify]
 
 ## Success Criteria
+[How will you measure success?]
 
-### Technical
-- `docker-compose up` gets everything running in under 5 minutes
-- Database, API, auth, and functions all work together
-- Can handle basic CRUD operations and file uploads
-- Real-time features work for live updates
+## Timeline
+[What's your target timeline?]
 
-### Usability  
-- AI agents can extend this without breaking existing functionality
-- Clear separation between core infrastructure and custom code
-- New features can be added without touching the base setup
+## Additional Notes
+[Any other important details, constraints, or requirements]
 
-## What This Starter Kit Doesn't Need
+---
 
-### Not Required
-- Complex CI/CD pipelines
-- Comprehensive documentation  
-- Multi-region deployment
-- Advanced monitoring/alerting
-- Enterprise features
-- Performance optimization beyond basics
-- Extensive testing frameworks
+## Getting Started
 
-### Out of Scope
-- Custom UI components
-- Business-specific features
-- Advanced security compliance
-- Scaling beyond single-instance
-- Complex workflow orchestration
+1. Fill out this PRD with your specific requirements
+2. Save the file
+3. Run: `./setup-taskmaster.sh` again to generate your project tasks
+4. Start building with: `task-master next`
 
-## Technical Approach
-
-### Keep It Simple
-- Use default configurations where possible
-- Minimal custom code in the infrastructure layer
-- Standard Docker patterns
-- Basic security without over-engineering
-
-### AI Agent Friendly
-- Clear separation of concerns
-- Modular architecture
-- Standard file organization
-- Minimal dependencies between components
-
-## Risk Management
-
-### Main Risks
-- **Docker complexity** - Keep configurations simple and well-commented
-- **Service integration** - Test that all services actually work together
-- **Database setup** - Ensure SQL scripts don't conflict with each other
-- **Environment variables** - Clear documentation of what's required
-
-### Mitigation
-- Test the full stack regularly
-- Keep configurations as standard as possible
-- Document any non-obvious setup steps
-- Provide working examples for each major feature
+The Supabase AI Starter Kit provides:
+- PostgreSQL database with vector extensions
+- Authentication and user management
+- Real-time features for live AI interactions
+- API gateway for secure access
+- n8n for AI workflow automation
+- Complete development and testing infrastructure
