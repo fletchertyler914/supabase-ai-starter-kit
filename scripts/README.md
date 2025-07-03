@@ -4,6 +4,54 @@ This directory contains utility scripts for managing and testing the Supabase AI
 
 ## Available Scripts
 
+### 🔐 Authentication Test Scripts
+
+#### `test-auth-complete.js`
+
+**Purpose:** Comprehensive end-to-end authentication flow testing
+
+- Tests complete signup, signin, and user profile workflows
+- Validates email confirmation flow
+- Tests protected API access with authentication
+- Verifies Kong API gateway routing for auth endpoints
+- Includes session management and logout testing
+
+#### `test-auth-direct.js`
+
+**Purpose:** Direct authentication service testing (bypassing Kong)
+
+- Tests auth service directly on internal port
+- Useful for debugging authentication issues
+- Bypasses API gateway for isolated auth testing
+- Validates core auth functionality without routing complexity
+
+#### `test-auth.js`
+
+**Purpose:** Basic authentication functionality testing
+
+- Simple signup and signin flow testing
+- Quick verification of core auth endpoints
+- Lightweight testing for basic auth validation
+
+**Usage:**
+
+```bash
+# Test complete authentication flow (recommended)
+node scripts/test-auth-complete.js
+
+# Test auth service directly (debugging)
+node scripts/test-auth-direct.js
+
+# Basic auth testing
+node scripts/test-auth.js
+```
+
+**Prerequisites:**
+
+- Docker stack must be running
+- Email service must be configured (for test-auth-complete.js)
+- .env file with proper auth configuration
+
 ### 🧪 `test-database-integration.sh`
 
 **Purpose:** Comprehensive database integration testing
@@ -48,6 +96,39 @@ This directory contains utility scripts for managing and testing the Supabase AI
 
 - Docker stack must be running (`docker compose up`)
 - .env file must be present with required API keys
+
+### 🚀 `start.sh`
+
+**Purpose:** Intelligent stack startup with development options
+
+- Detects and starts appropriate Docker Compose configuration
+- Handles development vs production startup automatically
+- Manages network connectivity for services
+- Provides startup validation and health checks
+- Supports both basic and advanced development modes
+
+**Usage:**
+
+```bash
+./scripts/start.sh
+```
+
+### 🔄 `reset.sh`
+
+**Purpose:** Complete stack reset and cleanup
+
+- Stops all running containers
+- Cleans up Docker volumes and networks
+- Resets database to initial state
+- Clears persistent storage and logs
+- Provides fresh startup environment
+- Includes safety prompts and confirmation
+
+**Usage:**
+
+```bash
+./scripts/reset.sh [options]
+```
 
 ## When to Run These Scripts
 

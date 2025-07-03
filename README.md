@@ -38,7 +38,6 @@ An open-source, Infrastructure-as-Code template that gets you from AI concept to
 - **Complete Testing Suite** - Postman collections, Node.js scripts, health checks
 - **Development Email** - Inbucket for testing auth flows without external SMTP
 - **Infrastructure-as-Code** - Everything configured via Docker and environment files
-- **Task Management** - Taskmaster integration for AI-powered project planning
 - **Zero External Dependencies** - No Supabase Studio or cloud services required
 
 ## 🎯 What You Can Build
@@ -73,64 +72,49 @@ An open-source, Infrastructure-as-Code template that gets you from AI concept to
 
 ## 🚀 Quick Start (60 seconds)
 
-### **1-Minute AI Project Setup** ⚡
+### **1. Clone & Configure**
 
 ```bash
-# Clone and instantly set up your AI project with intelligent planning
 git clone https://github.com/fletchertyler914/supabase-ai-starter-kit.git
 cd supabase-ai-starter-kit
-./setup-taskmaster.sh
+
+# Copy environment template and configure
+cp .env.example .env
+# Edit .env with your API keys and settings
 ```
 
-🎯 **The setup script automatically:**
-
-- ✨ Initializes AI-powered project planning with Taskmaster
-- 📋 Helps you create a Product Requirements Document (PRD) tailored to your AI use case
-- 🗺️ Generates a complete task roadmap with dependencies and priorities
-- 🚀 Sets up development workflow with intelligent task management
-- 🤖 Provides AI guidance for implementation and progress tracking
-
-> **What makes this special?** Instead of starting with a blank project, you get a personalized development plan that evolves as you build. The AI understands your requirements and breaks them into manageable, ordered tasks.
-
-### **Start Your Infrastructure**
+### **2. Start Everything**
 
 ```bash
-# Start core services
+# Recommended: Use npm scripts
+npm run dev                      # Start with development features
+npm run health                   # Validate everything works
+
+# Or use Docker directly
 docker-compose up -d
-
-# For development with email testing
-docker-compose -f docker-compose.yml -f dev/docker-compose.dev.yml up -d
-
-# Connect email service to network (if using dev email)
-docker network connect supabase_supastar supabase-mail
+docker-compose -f docker-compose.yml -f docker/docker-compose.dev.yml up -d
 ```
 
-### **Validate Everything Works**
+### **3. Validate Setup**
 
 ```bash
-# Run health checks
-./scripts/health-check.sh
+# Test everything (recommended)
+npm test
 
-# Test authentication flow
-node test-auth-complete.js
+# Or run individual tests
+npm run health                   # System health check
+npm run test:auth                # Authentication flow
+npm run test:db                  # Database integration
+
+# Access services
+npm run kong:open                # Kong API Gateway
+npm run n8n:open                 # n8n Workflows
+npm run email:open               # Email Testing (dev mode)
 ```
 
-### **Your AI Development Hub**
+**That's it!** You now have a production-ready AI infrastructure stack running locally.
 
-- 🚪 **Kong API Gateway**: http://localhost:8000 (Main entry point)
-- 🔄 **n8n AI Workflows**: http://localhost:5678 (Visual AI automation)
-- 📧 **Email Testing**: http://localhost:9000 (Development emails)
-
-### **Start Building with AI Guidance**
-
-```bash
-task-master list           # View your AI project tasks
-task-master next           # Get next task to work on
-task-master show 1         # See detailed task requirements
-task-master expand 1       # Break down complex tasks
-```
-
-**That's it!** You now have production-ready AI infrastructure + intelligent project planning.
+> 💡 **Pro Tip:** Use `npm run` to see all available commands, or check [package.json](./package.json) for the complete list of convenience scripts.
 
 ## 🌐 Service Architecture
 
@@ -182,13 +166,13 @@ task-master expand 1       # Break down complex tasks
 
 ```bash
 # Test complete auth flow with email confirmation
-node test-auth-complete.js
+node scripts/test-auth-complete.js
 
 # Test direct auth service (bypass Kong)
-node test-auth-direct.js
+node scripts/test-auth-direct.js
 
 # Basic auth functionality
-node test-auth.js
+node scripts/test-auth.js
 ```
 
 ### **API Testing with Postman**
@@ -254,30 +238,9 @@ supabase
 
 ## 🛠️ Development Workflow
 
-### **With Taskmaster (AI-Powered Planning)** 🤖
-
-```bash
-# Auto-setup with intelligent guidance (recommended)
-./setup-taskmaster.sh
-
-# Manual setup for existing projects
-npx task-master-ai init --rules cursor --name="My AI Project"
-task-master parse-prd requirements.txt
-
-# AI-powered development workflow
-task-master list              # See all tasks for your AI project
-task-master next              # Get next task with dependencies resolved
-task-master show 5            # View detailed implementation requirements
-task-master expand 5          # Break complex tasks into subtasks
-task-master update-subtask 5.1 --prompt="Implementation progress..."
-task-master set-status 5.1 done
-```
-
-### **Standard Docker Workflow**
-
 ```bash
 # Development with email testing
-docker-compose -f docker-compose.yml -f dev/docker-compose.dev.yml up -d
+docker-compose -f docker-compose.yml -f docker/docker-compose.dev.yml up -d
 
 # Production-like setup
 docker-compose up -d
@@ -286,7 +249,33 @@ docker-compose up -d
 docker-compose logs -f [service-name]
 
 # Reset and clean restart
-./reset.sh
+./scripts/reset.sh
+```
+
+### **NPM Scripts (Recommended)** 🚀
+
+For an even better developer experience, use the included npm scripts:
+
+```bash
+# Quick start commands
+npm run start                    # Intelligent startup
+npm run dev                      # Development mode with email
+npm run dev:full                 # Full development stack (email + S3)
+npm stop                         # Stop all services
+npm run reset                    # Clean reset
+
+# Testing commands
+npm test                         # Run all tests
+npm run health                   # Health check
+npm run test:auth                # Test authentication
+npm run test:db                  # Test database
+
+# Utility commands
+npm run logs                     # View all logs
+npm run db:connect               # Connect to database
+npm run email:open               # Open email interface
+npm run n8n:open                 # Open n8n workflows
+npm run kong:open                # Open Kong gateway
 ```
 
 ## 🔧 Configuration & Customization
@@ -318,14 +307,14 @@ PERPLEXITY_API_KEY=pplx-...
 
 ### **AI Model Configuration**
 
-```bash
-# Configure AI models with Taskmaster
-task-master models --setup
+Configure your AI integrations by setting environment variables in your `.env` file:
 
-# Or set specific models
-task-master models --set-main=claude-3-5-sonnet-20241022
-task-master models --set-research=gpt-4o
-task-master models --set-fallback=claude-3-haiku-20240307
+```bash
+# AI Provider Keys
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+PERPLEXITY_API_KEY=pplx-...
+GOOGLE_API_KEY=AIza...
 ```
 
 ## 🔐 Security & Production Features
@@ -410,7 +399,7 @@ task-master models --set-fallback=claude-3-haiku-20240307
 
 ```bash
 # Simple upgrade process
-./reset.sh              # Clean state
+./scripts/reset.sh              # Clean state
 docker-compose pull     # Latest images
 docker-compose up -d    # Restart with updates
 ```
@@ -422,14 +411,14 @@ docker-compose up -d    # Restart with updates
 - **Schema migrations** via SQL scripts
 - **n8n workflows** exported/imported automatically
 
-## 🤝 AI Agent Integration
+## 🤝 AI Integration
 
-### **Built for AI Collaboration**
+### **Built for AI Applications**
 
-- **Taskmaster integration** - AI-powered project planning and management
+- **Multiple AI Providers** - OpenAI, Anthropic, Google, and more
 - **Clear extension points** - Add AI capabilities without breaking existing code
 - **Modular architecture** - Mix and match components as needed
-- **Rule-based development** - Consistent patterns for AI assistant guidance
+- **Vector database ready** - pgvector for semantic search and RAG
 
 ### **Development Patterns**
 
@@ -446,6 +435,7 @@ docker-compose up -d    # Restart with updates
 - [**API Testing**](./scripts/README.md) - Testing and validation
 - [**n8n Workflows**](./n8n/README.md) - AI automation patterns
 - [**Database Schema**](./volumes/db/) - PostgreSQL setup and extensions
+- [**Docker Configurations**](./docker/) - Development and deployment compose files
 
 ### **Advanced Topics**
 
@@ -468,14 +458,14 @@ docker-compose ps
 docker-compose logs -f
 
 # Reset and restart
-./reset.sh && docker-compose up -d
+./scripts/reset.sh && docker-compose up -d
 ```
 
 **Authentication failing?**
 
 ```bash
 # Test auth flow
-node test-auth-complete.js
+node scripts/test-auth-complete.js
 
 # Check email service (dev mode)
 open http://localhost:9000
@@ -500,8 +490,8 @@ open http://localhost:5678
 ### **Reset Options**
 
 ```bash
-./reset.sh                    # Standard reset
-./reset.sh --help             # See all options
+./scripts/reset.sh                    # Standard reset
+./scripts/reset.sh --help             # See all options
 ```
 
 ## 📈 What's Next?

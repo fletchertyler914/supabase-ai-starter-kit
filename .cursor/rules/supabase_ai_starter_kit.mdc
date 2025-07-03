@@ -1,6 +1,6 @@
 ---
-description:
-globs:
+description: This rule helps me understand and guide users in adapting this Supabase AI Starter Kit for their specific AI applications and use cases.
+globs: 
 alwaysApply: false
 ---
 # Supabase AI Starter Kit - Project Adaptation Guide
@@ -15,8 +15,8 @@ This is a comprehensive **Infrastructure-as-Code Supabase AI Starter Kit** that 
 - **Kong API Gateway**: Professional API management and routing
 - **n8n Workflow Automation**: AI workflow orchestration and integrations
 - **Development Email**: Inbucket for testing email flows
-- **Testing Infrastructure**: Postman collections and Node.js test scripts
-- **Task Master Integration**: AI-powered project management
+- **Testing Infrastructure**: Node.js test scripts and health monitoring
+- **NPM Workflow**: Convenient script management for all operations
 - **Docker-First Approach**: No Supabase Studio dependency, everything via config
 
 ## **Key Architecture Components**
@@ -36,9 +36,9 @@ This is a comprehensive **Infrastructure-as-Code Supabase AI Starter Kit** that 
 - **n8n-postgres**: Dedicated database for n8n workflows
 
 ### **Development Tools**
-- **Postman Collections**: Pre-configured API testing
-- **Health Check Scripts**: Service monitoring
-- **Test Authentication Scripts**: Complete auth flow testing
+- **Health Check Scripts**: Service monitoring (`scripts/`)
+- **Test Authentication Scripts**: Complete auth flow testing (`scripts/`)
+- **NPM Scripts**: Convenient workflow management
 
 ## **Common AI Use Cases & Adaptations**
 
@@ -121,6 +121,7 @@ CREATE TABLE messages (
 git clone <repository>
 cd supabase-ai-starter-kit
 cp .env.example .env
+npm install  # Initialize npm scripts
 ```
 
 **Guide user to configure `.env` with:**
@@ -129,35 +130,61 @@ cp .env.example .env
 - SMTP settings for development
 - Custom domain/security settings
 
-### **Step 2: Taskmaster Initialization**
+### **Step 2: Service Startup (NPM Workflow - Recommended)**
 ```bash
-# Initialize Taskmaster for project planning
-npx task-master-ai init --rules cursor --name="My AI Project"
-```
+# Quick start (recommended)
+npm start
 
-**Create PRD Strategy:**
-1. **Interview Process**: Ask about their specific AI use case
-2. **Requirements Gathering**: Technical stack, integrations, user flows
-3. **PRD Creation**: Based on their responses, create comprehensive PRD
-4. **Task Generation**: Use `parse-prd` to generate implementation roadmap
+# Development with full features
+npm run dev:full
 
-### **Step 3: Service Startup**
-```bash
-# Start core services
+# Start with email server for testing
+npm run dev:email
+
+# Alternative: Direct Docker commands
 docker-compose up -d
-
-# For development with email
-docker-compose -f docker-compose.yml -f dev/docker-compose.dev.yml up -d
-
-# Connect mail service to network (if needed)
-docker network connect supabase_supastar supabase-mail
+docker-compose -f docker-compose.yml -f docker/docker-compose.dev.yml up -d
 ```
 
-### **Step 4: Validation**
-- Run health checks: `./scripts/health-check.sh`
-- Test authentication: `node test-auth-complete.js`
-- Verify n8n access: `http://localhost:5678`
-- Check email service: `http://localhost:9000`
+### **Step 3: Validation**
+```bash
+# NPM workflow (recommended)
+npm run health        # Health check
+npm test             # Full test suite
+npm run test:auth    # Authentication tests
+
+# Alternative: Direct script execution
+./scripts/health-check.sh
+./scripts/test-auth-complete.js
+```
+
+**Service URLs:**
+- n8n workflows: `http://localhost:5678`
+- Email service: `http://localhost:9000`
+- Supabase API: `http://localhost:8000`
+
+## **NPM Workflow Commands**
+
+### **Quick Start Commands**
+- **`npm start`**: Start core services quickly
+- **`npm run dev`**: Start with development features
+- **`npm stop`**: Stop all services
+- **`npm run logs`**: View service logs
+
+### **Testing Commands**
+- **`npm test`**: Run full test suite
+- **`npm run health`**: Check service health
+- **`npm run test:auth`**: Test authentication flow
+
+### **Development Variants**
+- **`npm run dev:full`**: All services including email
+- **`npm run dev:s3`**: Include S3-compatible storage
+- **`npm run email:open`**: Open email interface
+
+### **Utility Commands**
+- **`npm run db:connect`**: Connect to database
+- **`npm run reset`**: Clean reset all services
+- **`npm run reset:ollama`**: Reset including Ollama models
 
 ## **Extension Patterns**
 
@@ -181,9 +208,8 @@ docker network connect supabase_supastar supabase-mail
 - **Scheduled Jobs**: Batch processing, cleanup tasks
 
 ### **Testing Strategy**
-- **Postman Collections**: API endpoint testing
-- **Node.js Scripts**: Authentication flow testing
-- **Health Checks**: Service monitoring
+- **Node.js Scripts**: Authentication flow testing (`scripts/`)
+- **Health Checks**: Service monitoring (`scripts/health-check.sh`)
 - **Integration Tests**: End-to-end workflows
 
 ## **Common Configuration Points**
@@ -216,39 +242,30 @@ N8N_BASIC_AUTH_USER=admin
 N8N_BASIC_AUTH_PASSWORD=password
 ```
 
-## **Taskmaster Integration Strategy**
+## **Development Strategy**
 
-### **PRD Creation Process**
-When helping users create their PRD, focus on:
+### **Implementation Phases**
+Guide users through a logical development progression:
 
-1. **Use Case Definition**
-   - Primary AI functionality
-   - Target users and personas
-   - Success metrics
+**Phase 1: Core Setup**
+- Configure environment and start services (`npm start`)
+- Validate authentication flow (`npm run test:auth`)
+- Test basic API connectivity (`npm run health`)
 
-2. **Technical Requirements**
-   - AI models and APIs needed
-   - Data storage requirements
-   - Real-time features
-   - Integration points
+**Phase 2: AI Integration**  
+- Add AI service API keys
+- Create first AI endpoint (Edge Function)
+- Test basic AI functionality
 
-3. **Implementation Phases**
-   - MVP features (authentication + core AI)
-   - Advanced features (analytics, optimization)
-   - Scaling considerations
+**Phase 3: User Experience**
+- Build basic UI for AI features
+- Add real-time updates
+- Implement user feedback
 
-### **Task Generation Strategy**
-- **Phase 1**: Core setup and basic AI functionality
-- **Phase 2**: User interface and experience
-- **Phase 3**: Advanced features and optimizations
-- **Phase 4**: Testing, deployment, and monitoring
-
-### **Common Task Categories**
-- **Infrastructure**: Database schema, API setup
-- **AI Integration**: Model connections, processing pipelines
-- **User Experience**: Authentication, UI/UX, real-time features
-- **Testing**: Unit tests, integration tests, load testing
-- **Deployment**: Production setup, monitoring, CI/CD
+**Phase 4: Advanced Features**
+- Add vector search/RAG if needed
+- Optimize performance
+- Add monitoring and analytics
 
 ## **Key Success Patterns**
 
@@ -265,8 +282,8 @@ When helping users create their PRD, focus on:
 - **Plan for vector search early** if relevant to use case
 
 ### **🔧 Development Best Practices**
+- **Use NPM scripts** for consistent workflow management
 - **Test early and often** with provided test scripts
-- **Use Postman collections** for API development
 - **Monitor services** with health checks
 - **Version control workflows** in n8n export format
 
@@ -287,6 +304,11 @@ When helping users create their PRD, focus on:
 - **Model costs**: Monitor usage and implement budgets
 - **Context windows**: Design for token limitations
 - **Error handling**: Graceful degradation when AI services fail
+
+### **⚠️ Data Persistence**
+- **Volume management**: Understand which data persists across resets
+- **Ollama models**: Use `npm run reset:ollama` to clear models vs standard reset
+- **Database backups**: Plan for data export before major resets
 
 ## **Questions to Ask New Users**
 
@@ -310,37 +332,48 @@ When helping users create their PRD, focus on:
 
 ## **Helpful Commands Reference**
 
-### **Development Workflow**
+### **NPM Workflow (Recommended)**
 ```bash
 # Start services
-docker-compose up -d
+npm start                    # Quick start
+npm run dev                  # Development mode
+npm run dev:full            # Full feature set
 
-# View logs
-docker-compose logs -f [service-name]
+# Testing and monitoring
+npm run health              # Check service health
+npm test                    # Run test suite
+npm run test:auth          # Test authentication
 
-# Reset and clean restart
-./reset.sh
-
-# Health check
-./scripts/health-check.sh
-
-# Test authentication
-node test-auth-complete.js
+# Utilities
+npm run logs               # View service logs
+npm stop                   # Stop all services
+npm run reset             # Clean reset (preserve Ollama)
+npm run reset:ollama      # Full reset including Ollama models
 ```
 
-### **Taskmaster Commands**
+### **Direct Docker Commands (Alternative)**
 ```bash
-# Initialize project
-task-master init --rules cursor
+# Container management
+docker-compose ps                    # View running services
+docker-compose restart [service]    # Restart specific service
+docker-compose down && docker-compose up -d  # Full restart
 
-# Parse requirements
-task-master parse-prd requirements.txt
+# Database access
+docker exec -it supabase-db psql -U postgres
 
-# Get next task
-task-master next
-
-# Update progress
-task-master update-subtask --id=X.Y --prompt="Progress update"
+# Reset with options
+./scripts/reset.sh                   # Standard reset (preserve Ollama)
+./scripts/reset.sh --clear-ollama    # Nuclear option (remove everything)
+./scripts/reset.sh --dev-email       # Include email server cleanup
 ```
 
-This starter kit provides a production-ready foundation for AI applications with Supabase. The key is helping users understand which components to extend vs. replace based on their specific use case, and creating a clear implementation roadmap through Taskmaster.
+### **File Organization**
+```
+project-root/
+├── scripts/           # All utility scripts
+├── docker/           # Docker Compose variants
+├── volumes/          # Service configurations and functions
+└── package.json      # NPM script definitions
+```
+
+This starter kit provides a production-ready foundation for AI applications with Supabase. The key is helping users understand which components to extend vs. replace based on their specific use case, and providing clear guidance for building their AI features efficiently using the NPM workflow.

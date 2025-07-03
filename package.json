@@ -1,0 +1,58 @@
+{
+  "name": "supabase-ai-starter-kit",
+  "version": "1.0.0",
+  "description": "Production-ready Supabase AI infrastructure with Kong API Gateway, n8n workflows, and comprehensive testing suite",
+  "main": "index.js",
+  "scripts": {
+    "start": "./scripts/start.sh",
+    "stop": "docker-compose down",
+    "restart": "docker-compose restart",
+    "reset": "./scripts/reset.sh",
+    "logs": "docker-compose logs -f",
+    "health": "./scripts/health-check.sh",
+    "dev": "docker-compose -f docker-compose.yml -f docker/docker-compose.dev.yml up -d",
+    "dev:email": "docker-compose -f docker-compose.yml -f docker/docker-compose.email.yml up -d",
+    "dev:s3": "docker-compose -f docker-compose.yml -f docker/docker-compose.s3.yml up -d",
+    "dev:full": "docker-compose -f docker-compose.yml -f docker/docker-compose.dev.yml -f docker/docker-compose.email.yml -f docker/docker-compose.s3.yml up -d",
+    "test": "npm run test:health && npm run test:auth && npm run test:db",
+    "test:health": "./scripts/health-check.sh",
+    "test:auth": "node scripts/test-auth-complete.js",
+    "test:auth:direct": "node scripts/test-auth-direct.js",
+    "test:auth:basic": "node scripts/test-auth.js",
+    "test:db": "./scripts/test-database-integration.sh",
+    "postman:setup": "cd postman && ./setup-keys.sh",
+    "db:connect": "docker exec -it supabase-db psql -U postgres",
+    "db:logs": "docker-compose logs -f db",
+    "email:open": "open http://localhost:9000",
+    "n8n:open": "open http://localhost:5678",
+    "kong:open": "open http://localhost:8000"
+  },
+  "keywords": [
+    "supabase",
+    "ai",
+    "starter-kit",
+    "kong",
+    "n8n",
+    "postgresql",
+    "docker",
+    "api-gateway",
+    "authentication",
+    "workflows",
+    "vector-database",
+    "pgvector"
+  ],
+  "author": "Supabase AI Starter Kit",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fletchertyler914/supabase-ai-starter-kit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fletchertyler914/supabase-ai-starter-kit/issues"
+  },
+  "homepage": "https://github.com/fletchertyler914/supabase-ai-starter-kit#readme",
+  "engines": {
+    "node": ">=18.0.0",
+    "docker": ">=20.0.0"
+  }
+}
