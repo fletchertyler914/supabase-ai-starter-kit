@@ -270,6 +270,7 @@ npm test                         # health + auth + db
 npm run health                   # ./scripts/health-check.sh
 npm run test:auth                # node scripts/test-auth-complete.js
 npm run test:db                  # ./scripts/test-database-integration.sh
+npm run verify                   # CI-like local verification pipeline
 
 # Utilities
 npm run logs                     # docker compose logs -f

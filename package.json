@@ -14,6 +14,7 @@
     "dev:email": "docker compose -f docker-compose.yml -f docker/docker-compose.email.yml up -d",
     "dev:s3": "docker compose -f docker-compose.yml -f docker/docker-compose.s3.yml up -d",
     "dev:full": "docker compose -f docker-compose.yml -f docker/docker-compose.dev.yml -f docker/docker-compose.email.yml -f docker/docker-compose.s3.yml up -d",
+    "verify": "./scripts/verify-local.sh",
     "test": "npm run test:health && npm run test:auth && npm run test:db",
     "test:health": "./scripts/health-check.sh",
     "test:auth": "node scripts/test-auth-complete.js",

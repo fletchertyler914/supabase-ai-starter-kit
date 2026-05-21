@@ -39,6 +39,7 @@ docker compose pull
 docker compose up -d
 npm run health
 npm run test:db
+npm run verify
 ```
 
 This works for patch-level bumps and for upgrading the `:latest`-tagged
