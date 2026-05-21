@@ -22,6 +22,9 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Prepare Environment
+        run: cp .env.example .env
+
       - name: Verify Docker and Compose
         run: |
           docker --version
