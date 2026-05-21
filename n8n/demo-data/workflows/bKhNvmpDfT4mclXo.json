@@ -2,12 +2,12 @@
   "createdAt": "2025-06-29T06:54:15.510Z",
   "updatedAt": "2025-06-29T15:00:31.391Z",
   "id": "bKhNvmpDfT4mclXo",
-  "name": "Self Hosted Ollama Chat",
-  "active": true,
+  "name": "Template - Local Ollama Chat",
+  "active": false,
   "nodes": [
     {
       "parameters": {
-        "public": true,
+        "public": false,
         "initialMessages": "Hi there! 👋 \nI’m NodeBot, your local AI co-pilot for Supabase, n8n, and Ollama. \nNeed help wiring up a workflow, setting up Supabase rules, or running local AI models? \nJust tell me what you’re building — I’ll jump in.",
         "options": {}
       },

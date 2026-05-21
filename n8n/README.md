@@ -1,49 +1,55 @@
-# n8n Demo Data
+# n8n template seed
 
-This directory holds the seed workflow and credentials that are imported into
-n8n the first time the stack starts. The `n8n-import` container in
-[`docker-compose.yml`](../docker-compose.yml) runs once, calls
-`n8n import:credentials` and `n8n import:workflow`, then exits before the main
-`n8n` service comes online.
+This directory holds the **template library v0** workflows and optional credentials imported by the `n8n-import` one-shot container in [`docker-compose.yml`](../docker-compose.yml).
 
-## What's seeded
+## First run vs later starts
 
-| File | Purpose |
-| ---- | ------- |
-| `demo-data/workflows/bKhNvmpDfT4mclXo.json` | "Self Hosted Ollama Chat" — a chat trigger wired to a Langchain LLM chain backed by the Ollama node (`llama3.2:1b`). |
-| `demo-data/credentials/*.json` | Encrypted credential entries referenced by the workflow. Decryption requires `N8N_ENCRYPTION_KEY` (set in `.env`). |
+1. **`n8n-import`** runs `import-templates.sh` once per `volumes/n8n` volume:
+   - Imports credentials (if present) and workflows from `demo-data/`.
+   - Activates only workflow IDs listed in `workflow-ids.activate` (see `manifest.json`).
+   - Writes marker `.template-seed-complete` so later stack starts **skip** re-import.
+2. **`n8n`** starts after import completes successfully (`service_completed_successfully`).
 
-The workflow is published to `http://localhost:5678` and the chat trigger
-exposes a public webhook (`/webhook-test/<webhookId>`).
+Import failures **abort startup** (no silent `|| echo warn` fallbacks).
 
-## Replacing or updating the seed data
+## Template library
 
-The runtime n8n data lives in the named bind mount `./volumes/n8n`. To export
-the current state back into the seed bundle (so a fresh clone reproduces what
-you have):
+| Workflow ID | Name | Trigger | Notes |
+| ----------- | ---- | ------- | ----- |
+| `bKhNvmpDfT4mclXo` | Template - Local Ollama Chat | LangChain chat (non-public) | Needs Ollama + `llama3.2:1b` (or change model in UI). |
+| `c9a1b2c3d4e5f6789012345678ab` | Template - Supabase API Health Check | Webhook `POST /webhook/template-supabase-health` | Calls `http://kong:8000/auth/v1/health` on the Docker network. |
+
+Full setup, env vars, and smoke-test commands: [`templates/README.md`](../templates/README.md).
+
+## Credential policy
+
+- **Do not commit** real Supabase service-role keys, Stripe secrets, or third-party API tokens.
+- Shipped Ollama credential is a local-dev placeholder encrypted with `N8N_ENCRYPTION_KEY`.
+- See [`demo-data/credentials/README.md`](demo-data/credentials/README.md).
+
+## Security defaults
+
+- n8n UI basic auth is enabled by default (`N8N_BASIC_AUTH_*` in `.env.example`).
+- Template chat trigger is **not** public; enable public access only if you understand the exposure.
+- PostgREST does **not** expose the `n8n` schema (`PGRST_DB_SCHEMAS` excludes it).
+
+## Exporting changes back into the repo
 
 ```bash
-# Export all workflows and credentials from the running stack
 docker compose exec n8n n8n export:workflow --all --output=/demo-data/workflows --separate
 docker compose exec n8n n8n export:credentials --all --output=/demo-data/credentials --separate
 ```
 
-Both commands write into `/demo-data` inside the container, which is bind-mounted
-to `./n8n/demo-data` on the host.
+Both write into `/demo-data`, bind-mounted to `./n8n/demo-data` on the host. Update `manifest.json` and `workflow-ids.activate` when adding templates.
 
-> **Credential secrets** are encrypted with `N8N_ENCRYPTION_KEY`. If you rotate
-> that key without re-exporting, the seeded credentials will become unusable on
-> the next clean start.
-
-## Resetting n8n
+## Resetting n8n (re-seed templates)
 
 ```bash
-# Wipe n8n DB rows + binary data + volume, then re-seed on next start
+./scripts/reset.sh
+# or manually:
 docker compose down
 rm -rf volumes/n8n
 docker compose up -d
 ```
 
-The `n8n.sql` init script and the Postgres schema (`n8n` schema in the main
-`postgres` database) are what make this work — they're created during the first
-DB bootstrap by [`volumes/db/n8n.sql`](../volumes/db/n8n.sql).
+This clears the bind-mounted n8n data directory and removes the seed marker so the next start re-imports templates. The Postgres `n8n` schema is recreated on a full DB reset via [`volumes/db/n8n.sql`](../volumes/db/n8n.sql).

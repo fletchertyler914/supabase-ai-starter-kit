@@ -69,7 +69,7 @@ print_warning() {
     else
         echo -e "${YELLOW}   • Database volumes will be deleted (Ollama models preserved)${NC}"
     fi
-    echo -e "${RED}   • All bind-mounted data directories will be cleared${NC}"
+    echo -e "${RED}   • All bind-mounted data directories will be cleared (including n8n templates state)${NC}"
     echo -e "${RED}   • The .env file will be reset to defaults${NC}"
     echo ""
     if [ "$CLEAR_OLLAMA" = true ]; then
@@ -214,6 +214,7 @@ echo ""
 print_section "📁 DIRECTORY CLEANUP"
 BIND_MOUNTS=(
     "./volumes/db/data"
+    "./volumes/n8n"
 )
 
 for DIR in "${BIND_MOUNTS[@]}"; do

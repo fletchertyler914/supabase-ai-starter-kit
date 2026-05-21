@@ -207,13 +207,21 @@ ORDER BY embedding <=> '[0.1,0.2,...]'::vector
 LIMIT 5;
 ```
 
-### **n8n AI Workflows**
+### **n8n template library (v0)**
 
-- **Pre-configured integrations** for OpenAI, Anthropic, Hugging Face
-- **Vector database nodes** for embeddings and similarity search
-- **Webhook endpoints** for real-time AI processing
-- **Background jobs** for batch AI operations
-- **Template workflows** for common AI patterns
+Two workflows ship in [`templates/README.md`](./templates/README.md) and import on first start:
+
+| Template | Trigger | Purpose |
+| -------- | ------- | ------- |
+| **Local Ollama Chat** | LangChain chat (non-public) | Dev co-pilot wired to local Ollama (`llama3.2:1b`) |
+| **Supabase API Health Check** | `POST /webhook/template-supabase-health` | Verifies Kong/Auth health from inside Docker |
+
+```bash
+npm run test:templates          # import + webhook smoke test
+curl -s -X POST http://localhost:5678/webhook/template-supabase-health
+```
+
+n8n UI defaults to basic auth (`admin` / `changeme` — change in `.env` before exposing publicly). See [`n8n/README.md`](./n8n/README.md).
 
 ### **Real-time AI Features**
 
@@ -266,7 +274,8 @@ npm run dev:s3                   # base + MinIO (S3-compatible storage)
 npm run dev:full                 # base + dev + email + S3
 
 # Testing
-npm test                         # health + auth + db
+npm test                         # health + auth + db + n8n templates
+npm run test:templates           # template import + webhook smoke test
 npm run health                   # ./scripts/health-check.sh
 npm run test:auth                # node scripts/test-auth-complete.js
 npm run test:db                  # ./scripts/test-database-integration.sh
@@ -331,6 +340,9 @@ SMTP_PASS=fake_mail_password
 # n8n
 N8N_ENCRYPTION_KEY=super-secret-key
 N8N_USER_MANAGEMENT_JWT_SECRET=even-more-secret
+N8N_BASIC_AUTH_ACTIVE=true
+N8N_BASIC_AUTH_USER=admin
+N8N_BASIC_AUTH_PASSWORD=changeme
 
 # Ollama (local AI)
 OLLAMA_HOST=0.0.0.0
@@ -474,7 +486,8 @@ npm start
 - [**Database Bootstrap**](./volumes/db/) - PostgreSQL init scripts, roles, JWT, pgvector
 - [**Kong Routing**](./volumes/api/kong.yml) - Declarative API gateway routes
 - [**Edge Functions**](./volumes/functions/) - Deno serverless function runtime
-- [**n8n Demo Workflows**](./n8n/demo-data/) - Seeded workflow + credentials
+- [**Template library**](./templates/README.md) - Two n8n workflows + test commands
+- [**n8n seed data**](./n8n/demo-data/) - Workflow exports + import manifest
 - [**Docker Overlays**](./docker/) - Dev, email (Inbucket), and S3 (MinIO) variants
 
 ### **Upstream Documentation**

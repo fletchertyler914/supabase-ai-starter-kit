@@ -89,8 +89,13 @@ else
     print_status "warning" "Kong API Gateway (8000): $KONG_STATUS (expected 401)"
 fi
 
-# n8n Web Interface  
-N8N_WEB=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5678)
+# n8n Web Interface (basic auth when enabled)
+N8N_BASIC_ACTIVE="${N8N_BASIC_AUTH_ACTIVE:-true}"
+if [ "$N8N_BASIC_ACTIVE" = "true" ]; then
+    N8N_WEB=$(curl -s -o /dev/null -w "%{http_code}" -u "${N8N_BASIC_AUTH_USER:-admin}:${N8N_BASIC_AUTH_PASSWORD:-changeme}" http://localhost:5678)
+else
+    N8N_WEB=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5678)
+fi
 if [ "$N8N_WEB" = "200" ]; then
     print_status "success" "n8n Web Interface (5678): $N8N_WEB"
 else

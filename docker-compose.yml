@@ -28,6 +28,12 @@ x-n8n: &service-n8n
     - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
     - N8N_USER_MANAGEMENT_JWT_SECRET=${N8N_USER_MANAGEMENT_JWT_SECRET}
     - N8N_DEFAULT_BINARY_DATA_MODE=${N8N_DEFAULT_BINARY_DATA_MODE}
+    - N8N_BASIC_AUTH_ACTIVE=${N8N_BASIC_AUTH_ACTIVE:-true}
+    - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER:-admin}
+    - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD:-changeme}
+    - N8N_HOST=${N8N_HOST:-localhost}
+    - N8N_PORT=${N8N_PORT:-5678}
+    - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
     - OLLAMA_HOST=${OLLAMA_HOST:-ollama:11434}
   env_file:
     - .env
@@ -586,10 +592,10 @@ services:
     <<: *service-n8n
     hostname: n8n-import
     container_name: n8n-import
-    entrypoint: /bin/sh
+    entrypoint:
+      - /bin/sh
     command:
-      - '-c'
-      - 'n8n import:credentials --separate --input=/demo-data/credentials || echo "warn: n8n credentials import failed"; n8n import:workflow --separate --input=/demo-data/workflows || echo "warn: n8n workflow import failed"; n8n update:workflow --all --active=true || echo "warn: n8n workflow activation failed"'
+      - /demo-data/import-templates.sh
     volumes:
       - ./n8n/demo-data:/demo-data
       - ./volumes/n8n:/home/node/.n8n
