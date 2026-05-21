@@ -167,7 +167,15 @@ else
 fi
 
 # Test Realtime service via container health (HTTP endpoint not externally accessible)
-REALTIME_CONTAINER_STATUS=$(docker inspect realtime-dev.supabase-realtime --format '{{.State.Health.Status}}' 2>/dev/null || echo "unknown")
+# Realtime can stay in "starting" for a short period after the API is reachable.
+REALTIME_CONTAINER_STATUS="unknown"
+for i in {1..12}; do
+    REALTIME_CONTAINER_STATUS=$(docker inspect realtime-dev.supabase-realtime --format '{{.State.Health.Status}}' 2>/dev/null || echo "unknown")
+    if [ "$REALTIME_CONTAINER_STATUS" = "healthy" ]; then
+        break
+    fi
+    sleep 5
+done
 if [ "$REALTIME_CONTAINER_STATUS" = "healthy" ]; then
     print_status "success" "Realtime Service: $REALTIME_CONTAINER_STATUS"
 else
