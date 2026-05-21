@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  docker-stack-tests:
+    name: Docker Stack Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Verify Docker and Compose
+        run: |
+          docker --version
+          docker compose version
+
+      - name: Validate Compose Configs
+        run: |
+          docker compose config --quiet
+          docker compose -f docker-compose.yml -f docker/docker-compose.dev.yml config --quiet
+          docker compose -f docker-compose.yml -f docker/docker-compose.email.yml config --quiet
+          docker compose -f docker-compose.yml -f docker/docker-compose.s3.yml config --quiet
+          docker compose -f docker-compose.yml -f docker/docker-compose.dev.yml -f docker/docker-compose.email.yml -f docker/docker-compose.s3.yml config --quiet
+
+      - name: Start Full Stack
+        run: npm run dev:full
+
+      - name: Wait For Services
+        run: sleep 30
+
+      - name: Run Test Suite
+        run: npm test
+
+      - name: Show Compose Status
+        if: always()
+        run: docker compose ps
+
+      - name: Show Logs On Failure
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Tear Down Stack
+        if: always()
+        run: docker compose down -v --remove-orphans
