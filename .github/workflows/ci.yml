@@ -23,7 +23,10 @@ jobs:
           node-version: "20"
 
       - name: Prepare Environment
-        run: cp .env.example .env
+        run: |
+          cp .env.example .env
+          mkdir -p volumes/n8n volumes/db/data volumes/storage
+          chmod -R 777 volumes/n8n volumes/db/data volumes/storage
 
       - name: Verify Docker and Compose
         run: |
