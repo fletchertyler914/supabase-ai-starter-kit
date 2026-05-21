@@ -589,7 +589,7 @@ services:
     entrypoint: /bin/sh
     command:
       - '-c'
-      - 'n8n import:credentials --separate --input=/demo-data/credentials && n8n import:workflow --separate --input=/demo-data/workflows && n8n update:workflow --all --active=true'
+      - 'n8n import:credentials --separate --input=/demo-data/credentials || echo "warn: n8n credentials import failed"; n8n import:workflow --separate --input=/demo-data/workflows || echo "warn: n8n workflow import failed"; n8n update:workflow --all --active=true || echo "warn: n8n workflow activation failed"'
     volumes:
       - ./n8n/demo-data:/demo-data
       - ./volumes/n8n:/home/node/.n8n
