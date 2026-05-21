@@ -63,8 +63,9 @@ while [[ $# -gt 0 ]]; do
             echo "  $0 --cpu --dev-email -d               # CPU + email + background (short flag)"
             echo ""
             echo "Access points:"
-            echo "  • Supabase Studio: http://localhost:3000"
             echo "  • API Gateway: http://localhost:8000"
+            echo "  • Supabase Studio: http://localhost:8000 (basic auth via DASHBOARD_USERNAME/PASSWORD)"
+            echo "  • n8n: http://localhost:5678"
             if [ "$DEV_EMAIL" = true ]; then
                 echo "  • Email Web UI: http://localhost:9000"
             fi
@@ -111,7 +112,7 @@ echo -e "${PURPLE}🚀 Starting Supabase AI Starter Kit...${NC}"
 # Build compose file arguments
 COMPOSE_FILES="-f docker-compose.yml"
 if [ "$DEV_EMAIL" = true ]; then
-    COMPOSE_FILES="$COMPOSE_FILES -f docker-compose.email.yml"
+    COMPOSE_FILES="$COMPOSE_FILES -f docker/docker-compose.email.yml"
     echo -e "${BLUE}📧 Email server enabled${NC}"
 fi
 

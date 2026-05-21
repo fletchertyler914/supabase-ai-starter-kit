@@ -1,26 +1,32 @@
-services:
-  studio:
-    build:
-      context: ..
-      dockerfile: apps/studio/Dockerfile
-      target: dev
-    ports:
-      - 8082:8082
+# Development overlay
+#
+# Usage: docker compose -f docker-compose.yml -f docker/docker-compose.dev.yml up -d
+#
+# - Disables outbound SMTP credentials on GoTrue so it stays in dev mode (use the
+#   inbucket overlay docker/docker-compose.email.yml for capturing outbound mail).
+# - Exposes the Postgres metadata API for direct local tooling.
+# - Replaces the persistent bind-mounts for the database and storage with
+#   anonymous volumes so each `docker compose down -v` gives a clean slate.
+# - Seeds the database with the example profiles/avatars schema from docker/data.sql.
 
+services:
   auth:
     environment:
       - GOTRUE_SMTP_USER=
       - GOTRUE_SMTP_PASS=
+
   meta:
     ports:
       - 5555:8080
+
   db:
     restart: 'no'
     volumes:
-      # Always use a fresh database when developing
+      # Use an anonymous volume so each fresh `down -v` resets the database.
       - /var/lib/postgresql/data
-      # Seed data should be inserted last (alphabetical order)
-      - ./dev/data.sql:/docker-entrypoint-initdb.d/seed.sql
+      # Seed data is inserted after the base init scripts (alphabetical order).
+      - ./docker/data.sql:/docker-entrypoint-initdb.d/seed.sql:Z
+
   storage:
     volumes:
       - /var/lib/storage

@@ -1,10 +1,8 @@
-![Supabase AI Starter Kit](./assets/supabase-ai-starter-kit-banner.png)
-
 # Supabase AI Starter Kit
 
-> **Production-ready AI infrastructure. Ship in hours, not weeks.**
+> **Self-hosted Supabase + Kong + n8n + pgvector + Ollama, all in one Docker stack.**
 
-An open-source, Infrastructure-as-Code template that gets you from AI concept to working application in minutes. Built for developers, AI engineers, and teams who need to move fast without sacrificing production quality.
+An open-source, Infrastructure-as-Code template that gives you a complete self-hosted Supabase backend plus n8n workflow automation, ready for AI/RAG/LLM workloads on day one.
 
 ![Supabase](https://img.shields.io/badge/supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
 ![Kong](https://img.shields.io/badge/kong-003459?style=for-the-badge&logo=kong&logoColor=white)
@@ -12,7 +10,7 @@ An open-source, Infrastructure-as-Code template that gets you from AI concept to
 ![Docker](https://img.shields.io/badge/docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/postgresql-336791?style=for-the-badge&logo=postgresql&logoColor=white)
 
-**Infrastructure-as-Code. No Supabase Studio required. Everything in Docker.**
+**Infrastructure-as-Code. Everything in Docker. No external dependencies.**
 
 ## 🚀 What You Get
 
@@ -35,10 +33,10 @@ An open-source, Infrastructure-as-Code template that gets you from AI concept to
 
 ### 🛠️ **Developer Experience**
 
-- **Complete Testing Suite** - Postman collections, Node.js scripts, health checks
+- **Built-in Test Suite** - Node.js auth flow tests + shell health/db integration tests
 - **Development Email** - Inbucket for testing auth flows without external SMTP
+- **Optional Local LLMs** - Run Ollama on CPU/NVIDIA/AMD via Docker profiles
 - **Infrastructure-as-Code** - Everything configured via Docker and environment files
-- **Zero External Dependencies** - No Supabase Studio or cloud services required
 
 ## 🎯 What You Can Build
 
@@ -86,14 +84,21 @@ cp .env.example .env
 ### **2. Start Everything**
 
 ```bash
-# Recommended: Use npm scripts
-npm run dev                      # Start with development features
+# Recommended: npm scripts
+npm start                        # Production-like base stack
+npm run dev                      # Base stack + dev overlay (seed data, fresh DB)
+npm run dev:email                # Base stack + Inbucket dev email server
+npm run dev:full                 # Base + dev + email + S3 (MinIO) overlays
 npm run health                   # Validate everything works
 
 # Or use Docker directly
-docker-compose up -d
-docker-compose -f docker-compose.yml -f docker/docker-compose.dev.yml up -d
+docker compose up -d
+docker compose -f docker-compose.yml -f docker/docker-compose.dev.yml up -d
 ```
+
+> **Tip:** Without a `--cpu`/`--gpu-*` flag, the kit expects Ollama to already
+> be running on the host (`http://host.docker.internal:11434`). To run Ollama
+> in Docker instead, use `./scripts/start.sh --cpu` / `--gpu-nvidia` / `--gpu-amd`.
 
 ### **3. Validate Setup**
 
@@ -118,14 +123,21 @@ npm run email:open               # Email Testing (dev mode)
 
 ## 🌐 Service Architecture
 
-| Service              | URL                                     | Purpose                                 |
-| -------------------- | --------------------------------------- | --------------------------------------- |
-| **Kong API Gateway** | [localhost:8000](http://localhost:8000) | Main API entry point, routing, security |
-| **n8n Workflows**    | [localhost:5678](http://localhost:5678) | Visual AI workflow automation           |
-| **Email Testing**    | [localhost:9000](http://localhost:9000) | Development email server (dev mode)     |
-| **Supabase Auth**    | localhost:8000/auth/v1/\*               | Authentication endpoints via Kong       |
-| **PostgREST API**    | localhost:8000/rest/v1/\*               | Database REST API via Kong              |
-| **Realtime**         | localhost:8000/realtime/v1/\*           | WebSocket connections via Kong          |
+| Service              | URL                                     | Purpose                                       |
+| -------------------- | --------------------------------------- | --------------------------------------------- |
+| **Kong API Gateway** | [localhost:8000](http://localhost:8000) | Main API entry point, routing, security       |
+| **Supabase Studio**  | [localhost:8000](http://localhost:8000) | DB/auth/storage UI (basic-auth via Kong)      |
+| **n8n Workflows**    | [localhost:5678](http://localhost:5678) | Visual AI workflow automation                 |
+| **Analytics**        | [localhost:4000](http://localhost:4000) | Logflare logs UI                              |
+| **Email (dev)**      | [localhost:9000](http://localhost:9000) | Inbucket web UI (`npm run dev:email`)         |
+| **MinIO console**    | [localhost:9101](http://localhost:9101) | S3-compatible storage console (`dev:s3`)      |
+| **Postgres pooler**  | localhost:5432                          | Supavisor session pool                        |
+| **Postgres txn**     | localhost:6543                          | Supavisor transaction pool                    |
+| **Supabase Auth**    | localhost:8000/auth/v1/\*               | Authentication endpoints via Kong             |
+| **PostgREST API**    | localhost:8000/rest/v1/\*               | Database REST API via Kong                    |
+| **Realtime**         | localhost:8000/realtime/v1/\*           | WebSocket connections via Kong                |
+| **Storage**          | localhost:8000/storage/v1/\*            | File storage API via Kong                     |
+| **Edge Functions**   | localhost:8000/functions/v1/\*          | Deno serverless functions                     |
 
 ### 🏗️ Core Infrastructure
 
@@ -155,37 +167,23 @@ npm run email:open               # Email Testing (dev mode)
 
 ## 🧪 Built-in Testing & Validation
 
-### **Complete Test Suite**
+### **Test Suite**
 
-- **Postman Collections** - All API endpoints with environment variables
-- **Authentication Tests** - Full signup/signin/confirmation flow
+- **Authentication Tests** - Full signup/signin/confirmation flow against Kong
 - **Health Checks** - Service monitoring and connectivity validation
-- **Integration Tests** - End-to-end workflow validation
+- **Database Integration** - Schemas, extensions, JWT, pgvector, roles
 
 ### **Test Authentication Flow**
 
 ```bash
-# Test complete auth flow with email confirmation
+# Full auth flow with email confirmation
 node scripts/test-auth-complete.js
 
-# Test direct auth service (bypass Kong)
+# Auth service direct (bypass Kong)
 node scripts/test-auth-direct.js
 
 # Basic auth functionality
 node scripts/test-auth.js
-```
-
-### **API Testing with Postman**
-
-```bash
-# Import collections (pre-configured)
-# 1. Open Postman
-# 2. Import: postman/Supabase-AI-Starter-Kit.postman_collection.json
-# 3. Import: postman/Supabase-AI-Starter-Kit.postman_environment.json
-# 4. Configure environment variables with your keys
-
-# Or setup keys automatically
-cd postman && ./setup-keys.sh
 ```
 
 ## 🧠 AI Development Patterns
@@ -239,78 +237,114 @@ supabase
 ## 🛠️ Development Workflow
 
 ```bash
-# Development with email testing
-docker-compose -f docker-compose.yml -f docker/docker-compose.dev.yml up -d
+# Base stack (no dev overlays)
+docker compose up -d
 
-# Production-like setup
-docker-compose up -d
+# Base + dev overlay (anonymous DB volume, seed data)
+docker compose -f docker-compose.yml -f docker/docker-compose.dev.yml up -d
 
-# View logs
-docker-compose logs -f [service-name]
+# View logs for a specific service
+docker compose logs -f [service-name]
 
-# Reset and clean restart
+# Reset and clean restart (drops project volumes)
 ./scripts/reset.sh
 ```
 
-### **NPM Scripts (Recommended)** 🚀
-
-For an even better developer experience, use the included npm scripts:
+### **NPM Scripts (Recommended)**
 
 ```bash
-# Quick start commands
-npm run start                    # Intelligent startup
-npm run dev                      # Development mode with email
-npm run dev:full                 # Full development stack (email + S3)
-npm stop                         # Stop all services
-npm run reset                    # Clean reset
+# Lifecycle
+npm start                        # ./scripts/start.sh (smart starter with flags)
+npm stop                         # docker compose down
+npm run restart                  # docker compose restart
+npm run reset                    # ./scripts/reset.sh (interactive)
 
-# Testing commands
-npm test                         # Run all tests
-npm run health                   # Health check
-npm run test:auth                # Test authentication
-npm run test:db                  # Test database
+# Compose modes
+npm run dev                      # base + docker/docker-compose.dev.yml
+npm run dev:email                # base + Inbucket (dev SMTP / web UI)
+npm run dev:s3                   # base + MinIO (S3-compatible storage)
+npm run dev:full                 # base + dev + email + S3
 
-# Utility commands
-npm run logs                     # View all logs
-npm run db:connect               # Connect to database
-npm run email:open               # Open email interface
-npm run n8n:open                 # Open n8n workflows
-npm run kong:open                # Open Kong gateway
+# Testing
+npm test                         # health + auth + db
+npm run health                   # ./scripts/health-check.sh
+npm run test:auth                # node scripts/test-auth-complete.js
+npm run test:db                  # ./scripts/test-database-integration.sh
+
+# Utilities
+npm run logs                     # docker compose logs -f
+npm run db:logs                  # docker compose logs -f db
+npm run db:connect               # psql shell inside supabase-db
+npm run kong:open                # http://localhost:8000 (Kong / Studio)
+npm run studio:open              # http://localhost:8000 (Studio via Kong)
+npm run n8n:open                 # http://localhost:5678
+npm run email:open               # http://localhost:9000 (Inbucket)
+npm run minio:open               # http://localhost:9101 (MinIO console)
+```
+
+### **Ollama (LLM runtime)**
+
+The kit talks to Ollama at `http://ollama:11434` from inside Docker. Choose
+one of the following depending on your host:
+
+```bash
+# Use Ollama installed on the host machine (default; fastest on Mac)
+./scripts/start.sh
+
+# Run Ollama inside Docker on CPU only
+./scripts/start.sh --cpu
+
+# NVIDIA / AMD GPU profiles
+./scripts/start.sh --gpu-nvidia
+./scripts/start.sh --gpu-amd
 ```
 
 ## 🔧 Configuration & Customization
 
 ### **Environment Variables**
 
-Key settings in `.env`:
+Key settings in `.env` (see [`.env.example`](./.env.example) for the full list):
 
 ```bash
-# Database
-POSTGRES_PASSWORD=your-super-secret-jwt-token-with-at-least-32-characters-long
+# Secrets — MUST regenerate before any non-local use
+POSTGRES_PASSWORD=your-super-secret-and-long-postgres-password
+JWT_SECRET=your-super-secret-jwt-token-with-at-least-32-characters-long
+ANON_KEY=...                          # Generate via Supabase JWT helper
+SERVICE_ROLE_KEY=...                  # Generate via Supabase JWT helper
+DASHBOARD_USERNAME=supabase
+DASHBOARD_PASSWORD=change-me          # Basic auth in front of Supabase Studio
+SECRET_KEY_BASE=...                   # Realtime / Supavisor
+VAULT_ENC_KEY=...                     # 32-char min
 
 # Authentication
 ENABLE_EMAIL_SIGNUP=true
-ENABLE_EMAIL_AUTOCONFIRM=false  # Set true for development
+ENABLE_EMAIL_AUTOCONFIRM=false        # Set true for fully local dev without email
 DISABLE_SIGNUP=false
 
-# SMTP (for production)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
+# SMTP — set these in production; for local dev use docker-compose.email.yml
+SMTP_HOST=supabase-mail               # = Inbucket when dev:email overlay is on
+SMTP_PORT=2500
+SMTP_USER=fake_mail_user
+SMTP_PASS=fake_mail_password
 
-# AI Service Keys (add as needed)
-OPENAI_API_KEY=sk-...
-ANTHROPIC_API_KEY=sk-ant-...
-PERPLEXITY_API_KEY=pplx-...
+# n8n
+N8N_ENCRYPTION_KEY=super-secret-key
+N8N_USER_MANAGEMENT_JWT_SECRET=even-more-secret
+
+# Ollama (local AI)
+OLLAMA_HOST=0.0.0.0
+OLLAMA_BASE_URL=http://ollama:11434
+OLLAMA_DEFAULT_MODELS=llama3.2:1b,nomic-embed-text
 ```
+
+> Generate strong JWT keys with the [Supabase self-hosting guide](https://supabase.com/docs/guides/self-hosting/docker#generate-api-keys).
 
 ### **AI Model Configuration**
 
-Configure your AI integrations by setting environment variables in your `.env` file:
+Add provider keys to `.env` (no defaults are required — they're only used by the
+edge functions and n8n nodes you wire up):
 
 ```bash
-# AI Provider Keys
 OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 PERPLEXITY_API_KEY=pplx-...
@@ -398,10 +432,14 @@ GOOGLE_API_KEY=AIza...
 ### **Easy Updates**
 
 ```bash
-# Simple upgrade process
-./scripts/reset.sh              # Clean state
-docker-compose pull     # Latest images
-docker-compose up -d    # Restart with updates
+# Pull latest images and restart in place (preserves data volumes)
+docker compose pull
+docker compose up -d
+
+# Clean-slate upgrade (drops DB / storage / n8n volumes)
+./scripts/reset.sh              # Removes containers + project volumes
+docker compose pull
+npm start
 ```
 
 ### **Data Migration**
@@ -429,20 +467,21 @@ docker-compose up -d    # Restart with updates
 
 ## 📚 Documentation & Resources
 
-### **Getting Started Guides**
+### **In-repo Reference**
 
-- [**Authentication Setup**](./postman/README.md) - Complete auth flow setup
-- [**API Testing**](./scripts/README.md) - Testing and validation
-- [**n8n Workflows**](./n8n/README.md) - AI automation patterns
-- [**Database Schema**](./volumes/db/) - PostgreSQL setup and extensions
-- [**Docker Configurations**](./docker/) - Development and deployment compose files
+- [**Scripts README**](./scripts/README.md) - Testing, health, reset utilities
+- [**Database Bootstrap**](./volumes/db/) - PostgreSQL init scripts, roles, JWT, pgvector
+- [**Kong Routing**](./volumes/api/kong.yml) - Declarative API gateway routes
+- [**Edge Functions**](./volumes/functions/) - Deno serverless function runtime
+- [**n8n Demo Workflows**](./n8n/demo-data/) - Seeded workflow + credentials
+- [**Docker Overlays**](./docker/) - Dev, email (Inbucket), and S3 (MinIO) variants
 
-### **Advanced Topics**
+### **Upstream Documentation**
 
-- [**Production Deployment**](./DEPLOYMENT.md) - Production setup and configuration
-- [**Security Best Practices**](./SECURITY.md) - Security hardening and compliance
-- [**Performance Tuning**](./PERFORMANCE.md) - Optimization and scaling
-- [**Troubleshooting Guide**](./TROUBLESHOOTING.md) - Common issues and solutions
+- [Self-hosting Supabase](https://supabase.com/docs/guides/self-hosting/docker)
+- [n8n self-hosted](https://docs.n8n.io/hosting/)
+- [Kong declarative config](https://docs.konghq.com/gateway/latest/production/deployment-topologies/db-less-and-declarative-config/)
+- [pgvector](https://github.com/pgvector/pgvector)
 
 ## 🛟 Troubleshooting
 
@@ -452,13 +491,13 @@ docker-compose up -d    # Restart with updates
 
 ```bash
 # Check service status
-docker-compose ps
+docker compose ps
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 
 # Reset and restart
-./scripts/reset.sh && docker-compose up -d
+./scripts/reset.sh && docker compose up -d
 ```
 
 **Authentication failing?**
@@ -471,21 +510,27 @@ node scripts/test-auth-complete.js
 open http://localhost:9000
 
 # Verify Kong routing
-curl http://localhost:8000/auth/v1/health
+curl -H "apikey: $ANON_KEY" http://localhost:8000/auth/v1/health
 ```
 
 **n8n workflows not working?**
 
 ```bash
-# Restart n8n service
-docker-compose restart n8n
+# Restart n8n
+docker compose restart n8n
 
 # Check n8n logs
-docker-compose logs -f n8n
+docker compose logs -f n8n
 
 # Access n8n interface
 open http://localhost:5678
 ```
+
+**Port conflicts when running `dev:full`?**
+
+The S3 overlay remaps MinIO to host ports `9100` (API) and `9101` (console)
+so it can coexist with the Inbucket email overlay on port `9000`. Inside the
+docker network MinIO is still reachable at `http://minio:9000`.
 
 ### **Reset Options**
 
@@ -513,14 +558,8 @@ open http://localhost:5678
 
 ## 🤝 Contributing
 
-We welcome contributions! Whether you're:
-
-- **Fixing bugs** or improving documentation
-- **Adding new AI workflow templates**
-- **Sharing use case examples**
-- **Improving performance or security**
-
-Check out our [Contributing Guidelines](./CONTRIBUTING.md) to get started.
+Pull requests and issues are welcome. Please open an issue first to discuss
+substantial changes (new services, breaking config changes, image bumps).
 
 ## 📄 License
 

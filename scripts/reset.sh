@@ -127,9 +127,9 @@ echo ""
 print_section "🐳 CONTAINER CLEANUP"
 
 # Build compose file arguments
-COMPOSE_FILES="-f docker-compose.yml -f ./dev/docker-compose.dev.yml"
+COMPOSE_FILES="-f docker-compose.yml -f docker/docker-compose.dev.yml"
 if [ "$DEV_EMAIL" = true ]; then
-    COMPOSE_FILES="$COMPOSE_FILES -f docker-compose.email.yml"
+    COMPOSE_FILES="$COMPOSE_FILES -f docker/docker-compose.email.yml"
 fi
 
 print_step "Stopping and removing Docker Compose services..."
