@@ -42,11 +42,12 @@ jobs:
         run: npm run dev:full
 
       - name: Wait For Services
+        timeout-minutes: 5
         run: |
           for i in {1..40}; do
-            KONG_STATUS="$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/health || true)"
-            N8N_STATUS="$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5678 || true)"
-            ANALYTICS_STATUS="$(curl -s -o /dev/null -w "%{http_code}" http://localhost:4000/health || true)"
+            KONG_STATUS="$(curl --connect-timeout 2 --max-time 3 -s -o /dev/null -w "%{http_code}" http://localhost:8000/health || true)"
+            N8N_STATUS="$(curl --connect-timeout 2 --max-time 3 -s -o /dev/null -w "%{http_code}" http://localhost:5678 || true)"
+            ANALYTICS_STATUS="$(curl --connect-timeout 2 --max-time 3 -s -o /dev/null -w "%{http_code}" http://localhost:4000/health || true)"
             echo "attempt=$i kong=$KONG_STATUS n8n=$N8N_STATUS analytics=$ANALYTICS_STATUS"
             if [ "$KONG_STATUS" = "401" ] && [ "$N8N_STATUS" = "200" ] && [ "$ANALYTICS_STATUS" = "200" ]; then
               echo "Core endpoints are ready."
