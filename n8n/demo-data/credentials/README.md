@@ -6,8 +6,9 @@ Committed credential exports are **encrypted with `N8N_ENCRYPTION_KEY`** from `.
 
 | File | Type | Purpose |
 | ---- | ---- | ------- |
-| `VmhEukzPe8au9PTB.json` | `ollamaApi` | Points at the in-stack Ollama service (`http://ollama:11434`). Used by **Local Ollama Agent** (Chat Hub Personal agent), **Template - Local Ollama Chat**, and **NodeBot Builder**. |
-| `N8NMcpBearer001.json` | `httpBearerAuth` | Local-dev bearer credential for n8n's instance-level MCP server at `http://127.0.0.1:5678/mcp-server/http`. Used by **NodeBot Builder** (MCP Client Tool) and the four `SK - Create *` / `SK - List *` helper sub-workflows. `scripts/setup.sh` refreshes this from the first n8n owner's MCP access token. |
+| `VmhEukzPe8au9PTB.json` | `ollamaApi` | Points at `http://ollama:11434`. Used by chat templates and Chat Hub agents. |
+| `N8NMcpBearer001.json` | `httpBearerAuth` | MCP access token for builder helpers and NodeBot Builder MCP Client Tool. |
+| `PostgresStarter001.json` | `postgres` | Local Supabase Postgres (`db:5432/postgres`). Used by NodeBot Builder Postgres chat memory. |
 
 ## Adding credentials for your own workflows
 

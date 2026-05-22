@@ -14,7 +14,14 @@
       "name": "Template - Supabase API Health Check",
       "activate": true,
       "requires": [],
-      "notes": "Webhook calls Kong auth health from inside the Docker network. No stored Supabase credentials required."
+      "notes": "Webhook calls Kong auth health from inside the Docker network (plus an Execute Workflow entry point for sub-workflows). No stored Supabase credentials required beyond the anon JWT headers already in the template."
+    },
+    {
+      "id": "f1e2d3c4b5a6978890abcdef12345678",
+      "name": "Template - Document Ingest + Query",
+      "activate": true,
+      "requires": [],
+      "notes": "RAG ingest and query webhooks backed by pgvector match_documents (`volumes/db/vector.sql`, `match_documents.sql`)."
     },
     {
       "id": "d4e5f6a7b8c9012345678901234abcd",
@@ -50,19 +57,98 @@
       "activate": true,
       "requires": ["httpBearerAuth"],
       "notes": "NodeBot Builder helper: wraps MCP search_workflows so the chat agent can list/describe workflows in one tool call."
+    },
+    {
+      "id": "f2e3d4c5b6a7988991bcdef23456789a",
+      "name": "SK - Create RAG Workflow",
+      "activate": true,
+      "requires": ["httpBearerAuth"],
+      "notes": "Builder helper: clones the Document Ingest + Query template and parameterizes ingest/query paths plus description via MCP-driven create."
+    },
+    {
+      "id": "f3e4d5c6b7a8999002cdef345678901b",
+      "name": "SK - Update Workflow",
+      "activate": true,
+      "requires": ["httpBearerAuth"],
+      "notes": "Fetch workflow via MCP get_workflow_details, linearize to Workflow SDK, validate implicitly through update_workflow, and apply name/description patches. Toggle active with SK - Activate/Deactivate."
+    },
+    {
+      "id": "f4e5d6c7b8a9000113def456789012c",
+      "name": "SK - Activate Deactivate Workflow",
+      "activate": true,
+      "requires": ["httpBearerAuth"],
+      "notes": "Confirms the workflow exists via get_workflow_details then calls publish_workflow or unpublish_workflow for true/false toggles."
+    },
+    {
+      "id": "f5e6d7c8b9a0111224ef567890123d",
+      "name": "SK - Delete Workflow",
+      "activate": true,
+      "requires": ["httpBearerAuth"],
+      "notes": "Safety-gated archive via MCP archive_workflow (confirmToken must match id, protected kit IDs blocked)."
+    },
+    {
+      "id": "f6e7d8c9b0a1222335f6789012345ef",
+      "name": "SK - Create Supabase Row Trigger Workflow",
+      "activate": true,
+      "requires": ["httpBearerAuth"],
+      "notes": "Creates Postgres Trigger + Set workflow via MCP validate/create. Configure Postgres credentials (`PostgresStarter001` placeholder) before activating."
+    },
+    {
+      "id": "f7e8d9c0b1a2333446a7890123456af",
+      "name": "SK - Starter Kit Status",
+      "activate": true,
+      "requires": ["httpBearerAuth"],
+      "notes": "Read-only status: MCP workflow search + Kong GET + optional Code-node Ollama `/api/tags` fetch when $helpers is enabled."
+    },
+    {
+      "id": "f8e9f0d1c2b3444557a8901234567ab",
+      "name": "Template - AI Starter Console",
+      "activate": true,
+      "requires": ["ollamaApi"],
+      "notes": "Slimmer chat agent: List_Workflows + Starter_Kit_Status + Supabase health Execute Workflow tools. No MCP client tool."
+    },
+    {
+      "id": "fa0b1c2d3e4567890123456789abcde0",
+      "name": "Template - Starter Kit Index",
+      "activate": true,
+      "requires": [],
+      "notes": "Read-only JSON catalog of seeded templates, builder helpers, Chat Hub agents, and local URLs. GET /webhook/template-kit-index."
+    },
+    {
+      "id": "f9a0b1c2d3e4567890abcdef1234567a",
+      "name": "SK - Record AI Call",
+      "activate": true,
+      "requires": [],
+      "notes": "Sub-workflow inserts one row into public.ai_calls via Kong PostgREST (anon JWT bundled with other templates)."
     }
   ],
   "credentialSetup": [
     {
       "type": "ollamaApi",
       "name": "Local Ollama API",
-      "usedBy": ["bKhNvmpDfT4mclXo", "d4e5f6a7b8c9012345678901234abcd"],
+      "usedBy": [
+        "bKhNvmpDfT4mclXo",
+        "d4e5f6a7b8c9012345678901234abcd",
+        "f8e9f0d1c2b3444557a8901234567ab"
+      ],
       "setup": "Create in n8n UI if not imported: base URL http://ollama:11434 (container) or http://host.docker.internal:11434 (host Ollama)."
     },
     {
       "type": "httpBearerAuth",
       "name": "n8n MCP Access Token",
-      "usedBy": ["d4e5f6a7b8c9012345678901234abcd"],
+      "usedBy": [
+        "d4e5f6a7b8c9012345678901234abcd",
+        "e6f7a8b9c0d1e2f3a4b5c6d7e8f90123",
+        "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+        "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7",
+        "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8",
+        "f2e3d4c5b6a7988991bcdef23456789a",
+        "f3e4d5c6b7a8999002cdef345678901b",
+        "f4e5d6c7b8a9000113def456789012c",
+        "f5e6d7c8b9a0111224ef567890123d",
+        "f6e7d8c9b0a1222335f6789012345ef",
+        "f7e8d9c0b1a2333446a7890123456af"
+      ],
       "setup": "scripts/setup.sh generates the token from the first n8n owner account and updates this credential automatically. If no owner exists yet, create the first n8n account and re-run npm run setup."
     }
   ]

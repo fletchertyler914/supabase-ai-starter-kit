@@ -26,7 +26,8 @@ volumes/db/data
 volumes/storage
 volumes/n8n
 
-# env
+# npm run backup output
+backups/
 .env
 .env.*
 !.env.example

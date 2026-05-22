@@ -2,7 +2,7 @@
 
 This directory holds everything that gets imported into n8n on first start:
 
-- Workflow JSON files (`demo-data/workflows/`)
+- Workflow JSON files (`demo-data/workflows/templates/`, `demo-data/workflows/builder-helpers/`, optional `examples/`)
 - Encrypted credential JSON files (`demo-data/credentials/`)
 - The activation list (`demo-data/workflow-ids.activate`)
 - The human-readable index (`demo-data/manifest.json`)
@@ -17,7 +17,7 @@ For end-user documentation of what each workflow does, see [`templates/README.md
 
 1. **`n8n-import`** runs `demo-data/import-templates.sh` once per `volumes/n8n` volume:
    - Imports every credential under `demo-data/credentials/` (if any).
-   - Imports every workflow under `demo-data/workflows/`.
+   - Imports every workflow under `demo-data/workflows/templates/` and `demo-data/workflows/builder-helpers/`.
    - Activates the workflow IDs listed in `workflow-ids.activate`.
    - Writes the marker file `.template-seed-complete` so the next start **skips** re-import.
 2. **`n8n-bootstrap`** runs `demo-data/bootstrap.sql` against the Postgres `n8n` schema on **every** start:
@@ -36,18 +36,27 @@ User-facing (full docs in [`templates/README.md`](../templates/README.md)):
 | --- | --- | --- | --- |
 | `bKhNvmpDfT4mclXo` | Template - Local Ollama Chat | LangChain chat (public webhook) | Needs Ollama + `OLLAMA_MODEL` |
 | `c9a1b2c3d4e5f6789012345678ab` | Template - Supabase API Health Check | Webhook `POST /webhook/template-supabase-health` | Calls Kong on the Docker network |
-| `d4e5f6a7b8c9012345678901234abcd` | Template - NodeBot Builder | Chat Hub workflow agent | Uses Ollama + 4 helpers + MCP Client Tool |
+| `d4e5f6a7b8c9012345678901234abcd` | Template - NodeBot Builder | Chat Hub workflow agent | Uses Ollama + 9 `toolWorkflow` helpers + MCP Client Tool |
 
-Builder helper sub-workflows (called by NodeBot Builder, not by end users):
+Shipped templates also include **`f1e2…` — Document ingest + query (RAG)**, **`f8e9…` — AI Starter Console**, and **`fa0b…` — Starter Kit Index** (JSON catalog webhook) — see [`templates/README.md`](../templates/README.md) and [`demo-data/manifest.json`](demo-data/manifest.json).
 
-| Workflow ID | Name | Trigger | Purpose |
-| --- | --- | --- | --- |
-| `e6f7a8b9c0d1e2f3a4b5c6d7e8f90123` | SK - Create Greeting Workflow | Execute Workflow Trigger | Manual Trigger + Set greeting |
-| `a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6` | SK - Create Webhook Workflow | Execute Workflow Trigger | POST webhook + normalized JSON |
-| `b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7` | SK - Create Scheduled Workflow | Execute Workflow Trigger | Schedule Trigger (cron) + Set |
-| `c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8` | SK - List Workflows | Execute Workflow Trigger | Wrapper around MCP `search_workflows` |
+Builder helper sub-workflows (called by NodeBot Builder live under `demo-data/workflows/builder-helpers/`):
 
-All seven workflows are listed in `workflow-ids.activate` and **must stay active** for the builder helpers to be callable from the agent.
+| Workflow ID | Name |
+| --- | --- |
+| `e6f7a8b9c0d1e2f3a4b5c6d7e8f90123` | SK - Create Greeting Workflow |
+| `a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6` | SK - Create Webhook Workflow |
+| `b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7` | SK - Create Scheduled Workflow |
+| `c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8` | SK - List Workflows |
+| `f2e3d4c5b6a7988991bcdef23456789a` | SK - Create RAG Workflow |
+| `f3e4d5c6b7a8999002cdef345678901b` | SK - Update Workflow |
+| `f4e5d6c7b8a9000113def456789012c` | SK - Activate Deactivate Workflow |
+| `f5e6d7c8b9a0111224ef567890123d` | SK - Delete Workflow |
+| `f6e7d8c9b0a1222335f6789012345ef` | SK - Create Supabase Row Trigger Workflow |
+| `f7e8d9c0b1a2333446a7890123456af` | SK - Starter Kit Status |
+| `f9a0b1c2d3e4567890abcdef1234567a` | SK - Record AI Call |
+
+All helpers are listed in `workflow-ids.activate` and **must stay active** so the builder can call them as sub-workflows.
 
 ## Chat Hub agents
 
@@ -76,6 +85,7 @@ Personal agents and Workflow agents in Chat Hub are stored in the `n8n.chat_hub_
 
 ```bash
 docker compose exec n8n n8n export:workflow --all --output=/demo-data/workflows --separate
+# Move exports from workflows/ into workflows/templates/ vs workflows/builder-helpers/, then run npm run validate:workflows.
 docker compose exec n8n n8n export:credentials --all --output=/demo-data/credentials --separate
 ```
 

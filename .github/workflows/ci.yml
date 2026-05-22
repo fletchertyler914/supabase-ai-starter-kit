@@ -41,6 +41,9 @@ jobs:
           docker compose -f docker-compose.yml -f docker/docker-compose.s3.yml config --quiet
           docker compose -f docker-compose.yml -f docker/docker-compose.dev.yml -f docker/docker-compose.email.yml -f docker/docker-compose.s3.yml config --quiet
 
+      - name: Validate n8n workflow seed files
+        run: npm run validate:workflows
+
       - name: Start Full Stack
         run: npm run dev:full
 

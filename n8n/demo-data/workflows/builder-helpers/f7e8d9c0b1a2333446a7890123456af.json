@@ -1,0 +1,207 @@
+{
+  "createdAt": "2026-05-22T12:00:00.000Z",
+  "updatedAt": "2026-05-22T12:00:00.000Z",
+  "id": "f7e8d9c0b1a2333446a7890123456af",
+  "name": "SK - Starter Kit Status",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "query",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "f7070707t",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        260,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const q = $input.first().json.query != null ? String($input.first().json.query) : '';\nreturn [{\n  json: {\n    queryIgnored: q,\n    urls: {\n      n8n: 'http://127.0.0.1:5678/',\n      supabaseGateway: 'http://kong:8000/',\n      ollama: 'http://ollama:11434/',\n    },\n    validateRpc: {\n      jsonrpc: '2.0',\n      id: 1,\n      method: 'tools/call',\n      params: { name: 'search_workflows', arguments: { limit: 200 } },\n    },\n  },\n}];"
+      },
+      "id": "f7070707b",
+      "name": "Build SDK Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ]
+    },
+    {
+      "id": "f7070707v",
+      "name": "MCP Validate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        740,
+        300
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "N8NMcpBearer001",
+          "name": "n8n MCP Access Token"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:5678/mcp-server/http",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json, text/event-stream"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.validateRpc) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "text"
+            }
+          }
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function parseMcpSse(raw) {\n  const text = typeof raw === 'string' ? raw : String(raw ?? '');\n  const dataLine = text.split(/\r?\n/).find((line) => line.startsWith('data: '));\n  if (!dataLine) throw new Error('Invalid MCP search_workflows response: ' + text.slice(0, 400));\n  const payload = JSON.parse(dataLine.slice(6));\n  if (payload.error) throw new Error(payload.error.message || JSON.stringify(payload.error));\n  const contentText = payload.result?.content?.[0]?.text;\n  if (contentText) {\n    try { return JSON.parse(contentText); } catch { return {}; }\n  }\n  return payload.result?.structuredContent || {};\n}\n\nconst sse = $('MCP Validate').first().json;\nconst data = parseMcpSse(sse.body ?? sse.data ?? '');\nconst rows = Array.isArray(data.data) ? data.data : [];\nconst count = typeof data.count === 'number' ? data.count : rows.length;\nconst preview = rows.slice(0, 12).map((w) => ({\n  id: w.id,\n  name: w.name,\n  active: w.active,\n}));\nreturn [{\n  json: {\n    ...$('Build SDK Payload').first().json,\n    workflowCount: count,\n    workflowsPreview: preview,\n  },\n}];"
+      },
+      "id": "f7070707p",
+      "name": "Parse Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        300
+      ]
+    },
+    {
+      "id": "f7070707c",
+      "name": "MCP Create",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1220,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "http://kong:8000/",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          }
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "return await (async () => {\n  const parse = $('Parse Validate').first().json;\n  const kongHttp = $('MCP Create').first().json || {};\n  const kongCode = kongHttp.statusCode ?? kongHttp.status ?? 0;\n  let ollama = { reachable: false, modelCount: 0, models: [] };\n  let oErr = '';\n  try {\n    if (typeof $helpers !== 'undefined' && $helpers.httpRequest) {\n      const tags = await $helpers.httpRequest({\n        method: 'GET',\n        url: parse.urls.ollama + 'api/tags',\n        json: true,\n        timeout: 6000,\n      });\n      const names = Array.isArray(tags.models) ? tags.models.map((m) => m.name).slice(0, 40) : [];\n      ollama = { reachable: true, modelCount: names.length, models: names };\n    } else {\n      oErr = 'Code helper $helpers.httpRequest not available in this n8n build';\n    }\n  } catch (e) {\n    oErr = String(e.message || e);\n  }\n  const nextSteps = [\n    'Browse n8n at ' + parse.urls.n8n,\n    'Open Chat Hub → Workflow agents → AI Starter Console for a guided tour.',\n    'Fetch the JSON catalog: GET http://localhost:5678/webhook/template-kit-index',\n    'Call Template - Supabase API Health Check webhook for gateway auth probes.',\n  ];\n  return [{\n    json: {\n      kong: {\n        probeUrl: parse.urls.supabaseGateway,\n        statusCode: kongCode,\n        ok: kongCode > 0 && kongCode < 500,\n      },\n      ollama,\n      n8n: {\n        workflowsVisible: parse.workflowCount,\n        sample: parse.workflowsPreview,\n      },\n      urls: parse.urls,\n      ollamaError: oErr,\n      nextSteps,\n      response: JSON.stringify({\n        kongStatus: kongCode,\n        workflowCount: parse.workflowCount,\n        ollamaOk: ollama.reachable,\n        models: ollama.models.slice(0, 6),\n      }, null, 2),\n    },\n  }];\n})();"
+      },
+      "id": "f7070707f",
+      "name": "Format Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1460,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Build SDK Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build SDK Payload": {
+      "main": [
+        [
+          {
+            "node": "MCP Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Validate": {
+      "main": [
+        [
+          {
+            "node": "Parse Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Validate": {
+      "main": [
+        [
+          {
+            "node": "MCP Create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Create": {
+      "main": [
+        [
+          {
+            "node": "Format Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "b1c862d0-3dea-5cf4-8c33-d0d57fb46b79",
+  "tags": []
+}

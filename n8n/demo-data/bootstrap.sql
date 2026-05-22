@@ -55,7 +55,10 @@ SET settings = (
 WHERE id IN (
   'bKhNvmpDfT4mclXo',
   'c9a1b2c3d4e5f6789012345678ab',
-  'd4e5f6a7b8c9012345678901234abcd'
+  'd4e5f6a7b8c9012345678901234abcd',
+  'f1e2d3c4b5a6978890abcdef12345678',
+  'f8e9f0d1c2b3444557a8901234567ab',
+  'fa0b1c2d3e4567890123456789abcde0'
 );
 
 -- ----------------------------------------------------------------------------
@@ -66,7 +69,7 @@ WHERE id IN (
 WITH agent_defaults AS (
   SELECT
     'Local Ollama Agent'::varchar(256)               AS name,
-    'Chat with your local Ollama model (llama3.2:3b). Powered by Supabase AI Starter Kit.'::varchar(512) AS description,
+    'Chat with your local Ollama model (llama3.2:3b). Open Chat Hub → Personal agents, or try the AI Starter Console workflow agent for a guided tour.'::varchar(512) AS description,
     -- Keep this directive: small/medium local models leak tool/system text otherwise.
     $$You are NodeBot, the local AI co-pilot for a self-hosted Supabase + n8n + Ollama developer stack.
 
@@ -83,8 +86,8 @@ Rules:
     '{"type":"icon","value":"bot"}'::json             AS icon,
     $$[
       {"text":"What can I build with this Supabase + n8n + Ollama starter kit?"},
-      {"text":"Sketch a simple n8n workflow that stores chat messages in Supabase."},
-      {"text":"How do I add a new edge function to this kit?"},
+      {"text":"How do I try the RAG document search template?"},
+      {"text":"Open Chat Hub and show me the AI Starter Console workflow agent."},
       {"text":"Explain Supabase RLS in two short paragraphs."}
     ]$$::json AS suggested_prompts
 )
@@ -131,7 +134,7 @@ SET
 FROM (
   SELECT
     'Local Ollama Agent'::varchar(256)               AS name,
-    'Chat with your local Ollama model (llama3.2:3b). Powered by Supabase AI Starter Kit.'::varchar(512) AS description,
+    'Chat with your local Ollama model (llama3.2:3b). Open Chat Hub → Personal agents, or try the AI Starter Console workflow agent for a guided tour.'::varchar(512) AS description,
     $$You are NodeBot, the local AI co-pilot for a self-hosted Supabase + n8n + Ollama developer stack.
 
 Rules:
@@ -146,8 +149,8 @@ Rules:
     '{"type":"icon","value":"bot"}'::json             AS icon,
     $$[
       {"text":"What can I build with this Supabase + n8n + Ollama starter kit?"},
-      {"text":"Sketch a simple n8n workflow that stores chat messages in Supabase."},
-      {"text":"How do I add a new edge function to this kit?"},
+      {"text":"How do I try the RAG document search template?"},
+      {"text":"Open Chat Hub and show me the AI Starter Console workflow agent."},
       {"text":"Explain Supabase RLS in two short paragraphs."}
     ]$$::json AS suggested_prompts
 ) AS ad
@@ -206,8 +209,8 @@ Rules:
       '[]'::json,
       $sugg$[
         {"text":"What can I build with this Supabase + n8n + Ollama starter kit?"},
-        {"text":"Sketch a simple n8n workflow that stores chat messages in Supabase."},
-        {"text":"How do I add a new edge function to this kit?"},
+        {"text":"How do I try the RAG document search template?"},
+        {"text":"Open Chat Hub and show me the AI Starter Console workflow agent."},
         {"text":"Explain Supabase RLS in two short paragraphs."}
       ]$sugg$::json,
       NOW(),

@@ -192,10 +192,11 @@ node scripts/test-auth.js
 **Purpose:** End-to-end import + shape check for seeded n8n workflows.
 
 - Confirms `n8n-import` wrote the seed marker.
-- Asserts all 7 workflows are present in the n8n DB (3 user-facing templates + 4 builder helpers).
+- Asserts all 17 workflows are present in the n8n DB (6 user-facing templates + 11 builder helpers).
 - Verifies the workflows listed in `workflow-ids.activate` are active.
-- Asserts the NodeBot Builder agent JSON has exactly 4 `toolWorkflow` nodes wired to the helper IDs.
-- Hits `POST /webhook/template-supabase-health` and asserts the response shape.
+- Asserts the NodeBot Builder agent JSON has exactly 9 `toolWorkflow` nodes wired to the helper IDs.
+- Asserts the AI Starter Console has its 3 helper tools wired correctly.
+- Hits `POST /webhook/template-supabase-health` and `GET /webhook/template-kit-index` and asserts their response shapes.
 - Runs as part of `npm test`.
 
 #### `test-n8n-builder-agent.sh`

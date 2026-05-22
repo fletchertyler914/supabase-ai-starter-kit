@@ -1,0 +1,180 @@
+{
+  "createdAt": "2026-05-22T14:00:00.000Z",
+  "updatedAt": "2026-05-22T14:00:00.000Z",
+  "id": "f9a0b1c2d3e4567890abcdef1234567a",
+  "name": "SK - Record AI Call",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "provider",
+              "type": "string"
+            },
+            {
+              "name": "model",
+              "type": "string"
+            },
+            {
+              "name": "latencyMs",
+              "type": "number"
+            },
+            {
+              "name": "promptTokens",
+              "type": "number"
+            },
+            {
+              "name": "completionTokens",
+              "type": "number"
+            },
+            {
+              "name": "costUsd",
+              "type": "number"
+            },
+            {
+              "name": "userId",
+              "type": "string"
+            },
+            {
+              "name": "workflowId",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "f9a0b1c2-exec",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        260,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const i = $input.first().json;\n\nconst UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\n\nfunction nullableInt(value) {\n  if (value === null || value === undefined || value === '') {\n    return null;\n  }\n  const n = typeof value === 'number' ? value : Number(value);\n  if (!Number.isFinite(n)) {\n    return null;\n  }\n  return Math.trunc(n);\n}\n\nfunction nullableUsd(value) {\n  if (value === null || value === undefined || value === '') {\n    return null;\n  }\n  const n = typeof value === 'number' ? value : Number(value);\n  if (!Number.isFinite(n)) {\n    return null;\n  }\n  return Number(n.toFixed(6));\n}\n\nconst rawUid = i.userId != null ? String(i.userId).trim() : '';\nconst userUuid = rawUid && UUID_RE.test(rawUid) ? rawUid.toLowerCase() : null;\n\nconst wf = i.workflowId != null ? String(i.workflowId).trim() : '';\n\nreturn [{\n  json: {\n    payload: {\n      provider: String(i.provider || 'unknown').slice(0, 128),\n      model: String(i.model || 'unknown').slice(0, 256),\n      latency_ms: nullableInt(i.latencyMs),\n      prompt_tokens: nullableInt(i.promptTokens),\n      completion_tokens: nullableInt(i.completionTokens),\n      cost_usd: nullableUsd(i.costUsd),\n      user_id: userUuid,\n      workflow_id: wf === '' ? null : wf.slice(0, 256),\n    },\n  },\n}];"
+      },
+      "id": "f9a0b1c2-body",
+      "name": "Build Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://kong:8000/rest/v1/ai_calls",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            },
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzUxMDg2ODAwLCJleHAiOjE5MDg4NTMyMDB9.ZvEDn3ykbm4EzNHfU5SG7exKPD1HkK9w_760ZJa63OQ"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzUxMDg2ODAwLCJleHAiOjE5MDg4NTMyMDB9.ZvEDn3ykbm4EzNHfU5SG7exKPD1HkK9w_760ZJa63OQ"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.payload) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "f9a0b1c2-rest",
+      "name": "Supabase Insert ai_calls",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        780,
+        300
+      ],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const http = $input.first().json;\nconst built = $('Build Payload').first().json;\nconst status = Number(http.statusCode ?? http.status ?? 0);\nlet row = {};\ntry {\n  const raw = http.body ?? http.data ?? '';\n  const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;\n  row = Array.isArray(parsed) ? (parsed[0] || {}) : parsed;\n} catch (_) {\n  row = {};\n}\nif (status >= 400) {\n  throw new Error('Supabase insert failed (' + status + '): ' + JSON.stringify(http.body ?? http.data));\n}\nreturn [{\n  json: {\n    ok: true,\n    status,\n    payload: built.payload,\n    row,\n    message: 'Recorded ai_calls row',\n  },\n}];"
+      },
+      "id": "f9a0b1c2-out",
+      "name": "Format Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Build Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Payload": {
+      "main": [
+        [
+          {
+            "node": "Supabase Insert ai_calls",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Insert ai_calls": {
+      "main": [
+        [
+          {
+            "node": "Format Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "987b4fca-353e-5edd-97cd-53b04629e4d0",
+  "tags": []
+}

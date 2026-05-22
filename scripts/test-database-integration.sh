@@ -126,6 +126,17 @@ else
     exit 1
 fi
 
+# Test 6b: RAG schema (documents + match_documents + ai_calls)
+echo "Test 6b: Verify RAG schema"
+docs_table=$(count_sql "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'documents';")
+match_fn=$(count_sql "SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE n.nspname = 'public' AND p.proname = 'match_documents';")
+ai_calls_table=$(count_sql "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ai_calls';")
+if [ "$docs_table" = "1" ] && [ "$match_fn" = "1" ] && [ "$ai_calls_table" = "1" ]; then
+    print_status "success" "RAG tables and match_documents() ready"
+else
+    print_status "warning" "RAG schema incomplete (documents=$docs_table match_documents=$match_fn ai_calls=$ai_calls_table) — apply volumes/db/*.sql on existing DBs"
+fi
+
 # Test 7: Check supabase_functions tables
 echo "Test 7: Verify webhooks/functions setup"
 hooks_table_count=$(count_sql "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'supabase_functions' AND table_name IN ('hooks', 'migrations');")

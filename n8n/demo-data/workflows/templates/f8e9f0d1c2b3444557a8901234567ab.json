@@ -1,0 +1,303 @@
+{
+  "createdAt": "2026-05-22T12:00:00.000Z",
+  "updatedAt": "2026-05-22T12:00:00.000Z",
+  "id": "f8e9f0d1c2b3444557a8901234567ab",
+  "name": "Template - AI Starter Console",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "mode": "hostedChat",
+        "initialMessages": "Hi \u2014 I\u2019m the AI Starter Console. Ask for a kit status snapshot, workflows list, gateway health ping, or I\u2019ll point you toward NodeBot Builder for workflow authoring.",
+        "availableInChat": true,
+        "agentName": "Starter Kit Console",
+        "agentDescription": "Lightweight conversational guide for the starter kit stack with status, workflow listing, and Supabase gateway health wrappers.",
+        "suggestedPrompts": {
+          "prompts": [
+            {
+              "icon": {
+                "type": "icon",
+                "value": "activity"
+              },
+              "text": "Run a starter kit status check (kong, workflows, Ollama)."
+            },
+            {
+              "icon": {
+                "type": "icon",
+                "value": "search"
+              },
+              "text": "List the workflows configured in this n8n instance."
+            },
+            {
+              "icon": {
+                "type": "icon",
+                "value": "heart"
+              },
+              "text": "Call the Supabase API health webhook and summarize Kong auth health."
+            },
+            {
+              "icon": {
+                "type": "icon",
+                "value": "workflow"
+              },
+              "text": "How should I greet users with NodeBot Builder?"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c1818181-8282-4831-9c92-eeeeeeee1111",
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        260,
+        300
+      ],
+      "webhookId": "7cdf2883-df5f-492b-ace5-f709670351d1"
+    },
+    {
+      "parameters": {
+        "promptType": "auto",
+        "options": {
+          "maxIterations": 10,
+          "systemMessage": "You are the AI Starter Console for the Supabase AI Starter Kit.\n\nABSOLUTE RULES:\n- Never print raw JSON, tool payloads, IDs, or function-call markup in replies.\n- Use the connected workflow tools instead of improvising MCP calls.\n- Replies stay short plain English plus any URLs the tools returned verbatim.\n\nYOU HELP WITH:\n- What this stack contains (Docker Compose: Supabase services, Kong, Postgres, optional Ollama, n8n, templates).\n- Live status snapshots (Starter_Kit_Status) and curated lists (List_Workflows).\n- Opening the Supabase health webhook helper results when users want to probe Kong-backed auth endpoints.\n\nPRIMARY BUILD PATH:\nPoint users toward **Template - NodeBot Builder** (`d4...`) via n8n chat for authoring workflows safely; remind them NodeBot exposes fast helpers plus MCP tools for bespoke graphs.\n\nTOOLS:\n- List_Workflows \u2014 inventory / search summaries.\n- Starter_Kit_Status \u2014 Kong ping, MCP workflow counts, optional Ollama tag fetch.\n- Supabase_API_Health \u2014 executes the seeded Supabase health-check sub-workflow (POST webhook internally calls Kong `/auth/v1/health`).\n"
+        }
+      },
+      "id": "d2828282-9292-4831-bd93-eeeeeeee2222",
+      "name": "Starter Console Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        560,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:3b",
+        "options": {
+          "temperature": 0.15,
+          "numPredict": 1800
+        }
+      },
+      "id": "e3838383-a3a3-4831-ce04-eeeeeeee3333",
+      "name": "Console Ollama Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        420,
+        560
+      ],
+      "credentials": {
+        "ollamaApi": {
+          "id": "VmhEukzPe8au9PTB",
+          "name": "Self Hosted Ollama"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "fromInput",
+        "contextWindowLength": 6
+      },
+      "id": "f4848484-b4b4-4831-df15-eeeeeeee4444",
+      "name": "Console Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        620,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Lists workflows visible to this MCP token. Prefer this when users ask what's installed, naming, URLs, descriptions.",
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "id": "query",
+              "displayName": "query",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "value": {
+            "query": "={{ $fromAI('query', 'Substring filter optional', 'string', '') }}"
+          }
+        }
+      },
+      "id": "a5858585-c5c5-4831-e016-eeeeeeee5555",
+      "name": "List_Workflows",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        940,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Aggregates kong reachability plus workflow counts via MCP search and optional local Ollama tag listing.",
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "f7e8d9c0b1a2333446a7890123456af",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "id": "query",
+              "displayName": "query",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "value": {
+            "query": "={{ $fromAI('query', 'Ignored placeholder', 'string', '') }}"
+          }
+        }
+      },
+      "id": "b6969696-d6d6-4831-f127-eeeeeeee6666",
+      "name": "Starter_Kit_Status",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1080,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Runs the seeded Supabase gateway health webhook (returns ok flag + Kong auth endpoint status codes). Does not mutate data.",
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "c9a1b2c3d4e5f6789012345678ab",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "id": "note",
+              "displayName": "note",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "value": {
+            "note": "={{ $fromAI('note', 'Unused placeholder for this health check', 'string', '') }}"
+          }
+        }
+      },
+      "id": "c7a7a7a7-e7e7-4831-a238-eeeeeeee7777",
+      "name": "Supabase_API_Health",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1220,
+        540
+      ]
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Starter Console Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Console Ollama Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Starter Console Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Console Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Starter Console Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List_Workflows": {
+      "ai_tool": [
+        [
+          {
+            "node": "Starter Console Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Starter_Kit_Status": {
+      "ai_tool": [
+        [
+          {
+            "node": "Starter Console Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase_API_Health": {
+      "ai_tool": [
+        [
+          {
+            "node": "Starter Console Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "0457d796-be84-5e49-ac0d-f4ae5e37faa9",
+  "triggerCount": 0,
+  "tags": []
+}

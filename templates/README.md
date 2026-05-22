@@ -2,8 +2,8 @@
 
 The kit ships with two layers of preconfigured AI in n8n:
 
-1. **Chat Hub agents** — a Personal agent + a Workflow agent, both backed by your local Ollama.
-2. **n8n workflows** — three user-facing templates plus four internal "builder helper" sub-workflows that NodeBot Builder uses to turn natural-language requests into real workflows reliably.
+1. **Chat Hub agents** — a Personal agent plus two Workflow agents (AI Starter Console + NodeBot Builder), all backed by your local Ollama where applicable.
+2. **n8n workflows** — six user-facing templates plus eleven internal "builder helper" sub-workflows that NodeBot Builder and the Console use to turn natural-language requests into real workflows reliably.
 
 Everything is imported and activated automatically on the **first** stack start (or after `volumes/n8n` is cleared / `./scripts/reset.sh` is run).
 
@@ -32,25 +32,39 @@ Open n8n → top-left **Chat** icon.
 
 The system prompt is intentionally directive — small local models otherwise tend to leak system instructions or pseudo-XML tags into chat. If you change the prompt or model, edit `bootstrap.sql` and re-run `docker compose run --rm n8n-bootstrap` (or `npm run setup`).
 
+### Workflow agent — AI Starter Console
+
+| | |
+| --- | --- |
+| Surface | Chat Hub → **Workflow agents** |
+| Workflow ID | `f8e9f0d1c2b3444557a8901234567ab` |
+| File | `n8n/demo-data/workflows/templates/f8e9f0d1c2b3444557a8901234567ab.json` |
+| Trigger | Chat Trigger v1.4 (`availableInChat`) |
+| Agent | AI Agent v3.1 (Tools Agent, `maxIterations: 10`) |
+| Model | `lmChatOllama` with `llama3.2:3b` |
+| Tools | `List_Workflows`, `Starter_Kit_Status`, `Supabase_API_Health` (3 sub-workflow helpers, no MCP client tool) |
+
+Use this as the guided entry point after `npm run setup`. Ask for a status snapshot, workflow inventory, or Kong auth health probe — it delegates to the fast helpers instead of improvising MCP calls.
+
 ### Workflow agent — NodeBot Builder
 
 | | |
 | --- | --- |
 | Surface | Chat Hub → **Workflow agents** |
 | Workflow ID | `d4e5f6a7b8c9012345678901234abcd` |
-| File | `n8n/demo-data/workflows/d4e5f6a7b8c9012345678901234abcd.json` |
+| File | `n8n/demo-data/workflows/templates/d4e5f6a7b8c9012345678901234abcd.json` |
 | Trigger | Chat Trigger v1.4 (`availableInChat`) |
 | Agent | AI Agent v3.1 (Tools Agent, streaming, `maxIterations: 12`) |
 | Model | `lmChatOllama` with `OLLAMA_BUILDER_MODEL` |
 | Memory | Buffer window (8 turns), session from chat input |
-| Tools | 4 sub-workflow helpers + `mcpClientTool` (10 MCP tools) |
+| Tools | 9 sub-workflow helpers + `mcpClientTool` (10 MCP tools) |
 
 The agent's system prompt routes requests to one of two paths:
 
-1. **Fast helpers** (recommended) — four `toolWorkflow` nodes wired to dedicated sub-workflows. The agent only has to pick the right helper and pass 1-3 short strings via `$fromAI`. The helper itself builds valid n8n Workflow SDK code, calls MCP `validate_workflow` → `create_workflow_from_code`, and returns the real workflow URL.
+1. **Fast helpers** (recommended) — nine `toolWorkflow` nodes wired to dedicated sub-workflows. The agent only has to pick the right helper and pass 1-3 short strings via `$fromAI`. The helper itself builds valid n8n Workflow SDK code, calls MCP `validate_workflow` → `create_workflow_from_code`, and returns the real workflow URL.
 2. **MCP Client Tool** — falls back here only when no helper fits. Goes through the full `get_sdk_reference → search_nodes → get_node_types → validate_workflow → create_workflow_from_code` loop.
 
-The Chat Trigger ships with four suggested prompts that map 1:1 onto the four helpers. Tested working end-to-end with `llama3.2:3b`.
+The Chat Trigger ships with suggested prompts that showcase the most common helpers. Tested working end-to-end with `llama3.2:3b`.
 
 ## User-facing workflow templates
 
@@ -59,7 +73,7 @@ The Chat Trigger ships with four suggested prompts that map 1:1 onto the four he
 | | |
 | --- | --- |
 | Workflow ID | `bKhNvmpDfT4mclXo` |
-| File | `n8n/demo-data/workflows/bKhNvmpDfT4mclXo.json` |
+| File | `n8n/demo-data/workflows/templates/bKhNvmpDfT4mclXo.json` |
 | Trigger | LangChain chat (public webhook for local use) |
 | Credentials | `ollamaApi` — `VmhEukzPe8au9PTB.json` (seeded) |
 | Webhook ID | `ba65d0a2-7d1d-4efe-9e7a-c41b1031e3bb` |
@@ -78,7 +92,7 @@ curl -s -X POST \
 | | |
 | --- | --- |
 | Workflow ID | `c9a1b2c3d4e5f6789012345678ab` |
-| File | `n8n/demo-data/workflows/c9a1b2c3d4e5f6789012345678ab.json` |
+| File | `n8n/demo-data/workflows/templates/c9a1b2c3d4e5f6789012345678ab.json` |
 | Trigger | Webhook `POST /webhook/template-supabase-health` |
 | Credentials | None (HTTP request to internal Kong using `.env` anon JWT) |
 
@@ -88,9 +102,39 @@ curl -s -X POST http://localhost:5678/webhook/template-supabase-health | jq .
 
 Expected: JSON with `"ok": true` and `authHealthStatus: 200` when Auth is healthy.
 
-### 3. Template — NodeBot Builder
+### 3. Template — Document Ingest + Query (RAG)
+
+| | |
+| --- | --- |
+| Workflow ID | `f1e2d3c4b5a6978890abcdef12345678` |
+| File | `n8n/demo-data/workflows/templates/f1e2d3c4b5a6978890abcdef12345678.json` |
+| Trigger | Webhooks `POST /webhook/template-rag-ingest` and `POST /webhook/template-rag-query` |
+| Credentials | `ollamaApi` (embeddings via `nomic-embed-text`) + Supabase REST (anon JWT) |
+
+See [QUICKSTART.md](../QUICKSTART.md) for curl examples or run `npm run test:rag`.
+
+### 4. Template — NodeBot Builder
 
 See [Workflow agent — NodeBot Builder](#workflow-agent--nodebot-builder) above. The workflow is exposed both as a Chat Hub workflow agent and as `availableInMCP` so other agents can also drive it.
+
+### 5. Template — AI Starter Console
+
+See [Workflow agent — AI Starter Console](#workflow-agent--ai-starter-console) above.
+
+### 6. Template — Starter Kit Index
+
+| | |
+| --- | --- |
+| Workflow ID | `fa0b1c2d3e4567890123456789abcde0` |
+| File | `n8n/demo-data/workflows/templates/fa0b1c2d3e4567890123456789abcde0.json` |
+| Trigger | Webhook `GET /webhook/template-kit-index` |
+| Credentials | None |
+
+Read-only JSON catalog of seeded templates, builder helpers, Chat Hub agents, and local URLs — useful for external docs or scripts without opening the n8n UI.
+
+```bash
+curl -s http://localhost:5678/webhook/template-kit-index | jq .
+```
 
 ## Builder helper sub-workflows
 
@@ -102,8 +146,15 @@ These are the "engine room" for NodeBot Builder. The user never invokes them dir
 | **SK - Create Webhook Workflow** | `a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6` | `Create_Webhook_Workflow` | `workflowName`, `webhookPath`, `description` |
 | **SK - Create Scheduled Workflow** | `b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7` | `Create_Scheduled_Workflow` | `workflowName`, `cronExpression`, `message` |
 | **SK - List Workflows** | `c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8` | `List_Workflows` | `query` (optional) |
+| **SK - Create RAG Workflow** | `f2e3d4c5b6a7988991bcdef23456789a` | `Create_RAG_Workflow` | `workflowName`, `ingestPath`, `queryPath`, `description` |
+| **SK - Update Workflow** | `f3e4d5c6b7a8999002cdef345678901b` | `Update_Workflow` | `workflowId`, `workflowName`, `description` |
+| **SK - Activate Deactivate Workflow** | `f4e5d6c7b8a9000113def456789012c` | `Activate_Deactivate_Workflow` | `workflowId`, `active` |
+| **SK - Delete Workflow** | `f5e6d7c8b9a0111224ef567890123d` | `Delete_Workflow` | `workflowId`, `confirmToken` |
+| **SK - Create Supabase Row Trigger Workflow** | `f6e7d8c9b0a1222335f6789012345ef` | `Create_Row_Trigger_Workflow` | `workflowName`, `schema`, `table`, `description` |
+| **SK - Starter Kit Status** | `f7e8d9c0b1a2333446a7890123456af` | `Starter_Kit_Status` | `query` (ignored) |
+| **SK - Record AI Call** | `f9a0b1c2d3e4567890abcdef1234567a` | (optional telemetry) | provider, model, latency, tokens |
 
-All four:
+All helpers:
 
 - Must stay **active** (they're listed in `workflow-ids.activate`). n8n refuses to run an inactive sub-workflow.
 - Use the seeded `httpBearerAuth` credential `N8NMcpBearer001` to call the local MCP endpoint at `http://127.0.0.1:5678/mcp-server/http`.
@@ -159,11 +210,11 @@ docker compose restart n8n
 
 ## Adding more templates or builder helpers
 
-1. Build the workflow in n8n and export to `n8n/demo-data/workflows/`.
+1. Build the workflow in n8n and export into `n8n/demo-data/workflows/templates/` (user-facing) or `builder-helpers/` (NodeBot tooling), then run `npm run validate:workflows`.
 2. Add an entry to `n8n/demo-data/manifest.json`.
 3. Append the workflow ID to `n8n/demo-data/workflow-ids.activate` if it should auto-activate.
 4. If it's a builder helper, also:
-   - Add a `@n8n/n8n-nodes-langchain.toolWorkflow` node to `n8n/demo-data/workflows/d4e5f6a7b8c9012345678901234abcd.json` with a clear description and `$fromAI` inputs.
+   - Add a `@n8n/n8n-nodes-langchain.toolWorkflow` node to `n8n/demo-data/workflows/templates/d4e5f6a7b8c9012345678901234abcd.json` with a clear description and `$fromAI` inputs.
    - Update the system prompt's "FAST HELPERS" section to mention the new tool.
    - Add a check to `scripts/test-n8n-templates.sh`.
 5. Document it in this file.

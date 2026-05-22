@@ -53,13 +53,46 @@ When it finishes, n8n opens in your browser.
 When you log in to n8n the first time, you already have:
 
 - **Personal agent** (Chat Hub → Personal agents → *Local Ollama Agent*) — drop-in chat with your local LLM.
-- **Workflow agent** (Chat Hub → Workflow agents → *NodeBot Builder*) — describe a workflow in chat, watch n8n create it.
-- **Three templates** auto-imported and **activated**:
+- **Workflow agents** in Chat Hub:
+  - **AI Starter Console** — guided tour of the stack, status checks, template pointers.
+  - **NodeBot Builder** — describe a workflow in chat, watch n8n create it.
+- **Six user-facing templates** auto-imported and **activated**:
   - Local Ollama Chat (chat trigger)
   - Supabase API Health Check (webhook)
+  - Document Ingest + Query (RAG webhooks)
   - NodeBot Builder (chat trigger + MCP tools)
-- **Four builder helper sub-workflows** (called by NodeBot Builder under the hood, not for direct use).
-- **Instance-level MCP** turned on with a bearer token generated for you.
+  - AI Starter Console (Chat Hub workflow agent)
+  - Starter Kit Index (JSON catalog webhook)
+- **Eleven builder helper sub-workflows** (called by NodeBot Builder / Console under the hood).
+- **Instance-level MCP** turned on; `npm run setup` creates the first n8n owner and issues the MCP token automatically.
+
+### Start with the AI Starter Console
+
+Click **Chat** (top-left) → **Workflow agents** → **AI Starter Console**. Ask:
+
+```text
+What's running in my starter kit and what should I try first?
+```
+
+Or fetch the read-only JSON catalog without opening chat:
+
+```bash
+curl -s http://localhost:5678/webhook/template-kit-index | jq .
+```
+
+### Try RAG (document search)
+
+```bash
+curl -s -X POST http://localhost:5678/webhook/template-rag-ingest \
+  -H 'Content-Type: application/json' \
+  -d '{"content":"pgvector stores embeddings for semantic search.","metadata":{"topic":"pgvector"}}'
+
+curl -s -X POST http://localhost:5678/webhook/template-rag-query \
+  -H 'Content-Type: application/json' \
+  -d '{"question":"How does pgvector help with search?"}'
+```
+
+Or run `npm run test:rag` after the stack is up.
 
 ### Talk to the Personal Agent
 
@@ -84,7 +117,7 @@ Same Chat Hub, **Workflow agents** tab → **NodeBot Builder**. The four suggest
 
 Each one finishes in a few seconds and gives you a real URL like `http://localhost:5678/workflow/<id>` you can click to inspect and activate.
 
-For anything outside those four shapes the agent falls back to n8n's instance-level MCP builder tools (search nodes, validate SDK code, create workflows). If you ask for something complex (multi-node integrations, custom logic) and the small default model struggles, bump the builder model:
+For anything outside those four shapes the agent falls back to n8n's instance-level MCP builder tools (search nodes, validate SDK code, create workflows). It also has helpers for **RAG**, **update/activate/delete**, and **Postgres row triggers**. If you ask for something complex and the small default model struggles, bump the builder model (see [docs/models.md](./docs/models.md)):
 
 ```bash
 echo 'OLLAMA_BUILDER_MODEL=qwen2.5:7b-instruct' >> .env
@@ -105,7 +138,7 @@ curl -s -X POST \
 curl -s -X POST http://localhost:5678/webhook/template-supabase-health | jq .
 ```
 
-> If NodeBot Builder reports an MCP authentication error, you probably haven't created the first n8n owner account yet. Create it in the n8n UI, then re-run `npm run setup` — it generates the MCP token from the new owner and rewrites the seeded credential.
+> MCP credentials are configured automatically by `npm run setup` — no manual re-run needed on fresh installs.
 
 ## Build your own
 

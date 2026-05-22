@@ -28,31 +28,35 @@ $$;
 -- Grant execute permission on the function
 GRANT EXECUTE ON FUNCTION public.cosine_similarity(extensions.vector, extensions.vector) TO anon, authenticated, service_role;
 
--- Create a simple example documents table (commented out - enable if needed)
--- CREATE TABLE IF NOT EXISTS documents (
---   id SERIAL PRIMARY KEY,
---   content TEXT NOT NULL,
---   embedding extensions.vector(1536), -- OpenAI embedding dimension
---   metadata JSONB DEFAULT '{}',
---   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
---   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
--- );
+-- RAG documents table (768-dim for Ollama nomic-embed-text)
+CREATE TABLE IF NOT EXISTS public.documents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  content TEXT NOT NULL,
+  embedding extensions.vector(768),
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
--- Create indexes for the example table (commented out - enable if needed)
--- CREATE INDEX CONCURRENTLY IF NOT EXISTS documents_embedding_cosine_idx 
---   ON documents USING ivfflat (embedding extensions.vector_cosine_ops) WITH (lists = 100);
--- CREATE INDEX CONCURRENTLY IF NOT EXISTS documents_metadata_gin_idx 
---   ON documents USING gin (metadata);
+CREATE INDEX IF NOT EXISTS documents_embedding_cosine_idx
+  ON public.documents USING ivfflat (embedding extensions.vector_cosine_ops)
+  WITH (lists = 100);
 
--- Enable RLS on documents table (commented out - enable if needed)
--- ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
+CREATE INDEX IF NOT EXISTS documents_metadata_gin_idx
+  ON public.documents USING gin (metadata);
 
--- Create RLS policies (commented out - enable if needed)
--- CREATE POLICY "Users can insert their own documents" ON documents
---   FOR INSERT WITH CHECK (auth.uid()::text = (metadata->>'user_id'));
--- CREATE POLICY "Users can view their own documents" ON documents
---   FOR SELECT USING (auth.uid()::text = (metadata->>'user_id'));
--- CREATE POLICY "Users can update their own documents" ON documents
---   FOR UPDATE USING (auth.uid()::text = (metadata->>'user_id'));
--- CREATE POLICY "Users can delete their own documents" ON documents
---   FOR DELETE USING (auth.uid()::text = (metadata->>'user_id')); 
+ALTER TABLE public.documents ENABLE ROW LEVEL SECURITY;
+
+-- Local-dev permissive policies (tighten before exposing publicly)
+DROP POLICY IF EXISTS "documents_anon_select" ON public.documents;
+DROP POLICY IF EXISTS "documents_anon_insert" ON public.documents;
+DROP POLICY IF EXISTS "documents_service_all" ON public.documents;
+
+CREATE POLICY "documents_anon_select" ON public.documents
+  FOR SELECT TO anon, authenticated USING (true);
+
+CREATE POLICY "documents_anon_insert" ON public.documents
+  FOR INSERT TO anon, authenticated WITH CHECK (true);
+
+CREATE POLICY "documents_service_all" ON public.documents
+  FOR ALL TO service_role USING (true) WITH CHECK (true);

@@ -1,0 +1,239 @@
+{
+  "createdAt": "2026-05-22T12:00:00.000Z",
+  "updatedAt": "2026-05-22T12:00:00.000Z",
+  "id": "f2e3d4c5b6a7988991bcdef23456789a",
+  "name": "SK - Create RAG Workflow",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "workflowName",
+              "type": "string"
+            },
+            {
+              "name": "ingestPath",
+              "type": "string"
+            },
+            {
+              "name": "queryPath",
+              "type": "string"
+            },
+            {
+              "name": "description",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "21111111-1111-4111-8111-111111111111",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        260,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const input = $input.first().json;\nconst workflowName = String(input.workflowName || 'RAG Workflow');\nconst ingestPathRaw = String(input.ingestPath || 'my-rag-ingest');\nconst queryPathRaw = String(input.queryPath || 'my-rag-query');\nconst description = String(input.description || 'Two-webhook RAG: Ollama nomic-embed-text + Supabase pgvector match_documents + llama3.2:3b chat.');\n\nfunction sanitizePath(p) {\n  return p.replace(/^\\/+/, '').replace(/[^a-z0-9_\\-]/gi, '-').toLowerCase() || 'rag';\n}\nconst ingestPath = sanitizePath(ingestPathRaw);\nconst queryPath = sanitizePath(queryPathRaw);\n\nconst safeName = workflowName.replace(/\\\\/g, '\\\\\\\\').replace(/\"/g, '\\\\\"');\nconst slug = workflowName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'rag-workflow';\n\nconst anonJwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzUxMDg2ODAwLCJleHAiOjE5MDg4NTMyMDB9.ZvEDn3ykbm4EzNHfU5SG7exKPD1HkK9w_760ZJa63OQ';\n\nconst sdkCode = `import { workflow, node, trigger } from \"@n8n/workflow-sdk\";\n\nconst ingestWebhook = trigger({\n  type: \"n8n-nodes-base.webhook\",\n  version: 2,\n  config: {\n    name: \"Webhook Ingest\",\n    parameters: {\n      httpMethod: \"POST\",\n      path: \"${ingestPath}\",\n      responseMode: \"lastNode\",\n    },\n  },\n});\n\nconst queryWebhook = trigger({\n  type: \"n8n-nodes-base.webhook\",\n  version: 2,\n  config: {\n    name: \"Webhook Query\",\n    parameters: {\n      httpMethod: \"POST\",\n      path: \"${queryPath}\",\n      responseMode: \"lastNode\",\n    },\n  },\n});\n\nconst ingestPrepare = node({\n  type: \"n8n-nodes-base.code\",\n  version: 2,\n  config: {\n    name: \"Ingest Prepare\",\n    parameters: {\n      mode: \"runOnceForAllItems\",\n      jsCode: \"const root = $input.first().json;\\\\nconst body = root.body ?? root;\\\\nconst content = String(body.content ?? '').trim();\\\\nconst metadata = body.metadata ?? {};\\\\nif (!content) throw new Error('Missing content');\\\\nreturn [{ json: { content, metadata } }];\",\n    },\n  },\n});\n\nconst ingestEmbed = node({\n  type: \"n8n-nodes-base.httpRequest\",\n  version: 4.2,\n  config: {\n    name: \"Ingest Ollama Embed\",\n    parameters: {\n      method: \"POST\",\n      url: \"http://ollama:11434/api/embeddings\",\n      sendHeaders: true,\n      headerParameters: { parameters: [{ name: \"Content-Type\", value: \"application/json\" }] },\n      sendBody: true,\n      specifyBody: \"json\",\n      jsonBody: \"={{ JSON.stringify({ model: 'nomic-embed-text', prompt: $json.content }) }}\",\n      options: { response: { response: { fullResponse: true, neverError: true } } },\n    },\n  },\n});\n\nconst ingestBuildRow = node({\n  type: \"n8n-nodes-base.code\",\n  version: 2,\n  config: {\n    name: \"Ingest Build Row\",\n    parameters: {\n      mode: \"runOnceForAllItems\",\n      jsCode: \"const prep = $('Ingest Prepare').first().json;\\\\nconst http = $input.first().json;\\\\nconst raw = http.body ?? http.data ?? '{}';\\\\nconst body = typeof raw === 'string' ? JSON.parse(raw) : raw;\\\\nconst embedding = body.embedding ?? [];\\\\nreturn [{ json: { content: prep.content, metadata: prep.metadata ?? {}, embedding } }];\",\n    },\n  },\n});\n\nconst ingestInsert = node({\n  type: \"n8n-nodes-base.httpRequest\",\n  version: 4.2,\n  config: {\n    name: \"Ingest Supabase Insert\",\n    parameters: {\n      method: \"POST\",\n      url: \"http://kong:8000/rest/v1/documents\",\n      sendHeaders: true,\n      headerParameters: {\n        parameters: [\n          { name: \"Content-Type\", value: \"application/json\" },\n          { name: \"apikey\", value: \"${anonJwt}\" },\n          { name: \"Authorization\", value: \"Bearer ${anonJwt}\" },\n          { name: \"Prefer\", value: \"return=representation\" },\n        ],\n      },\n      sendBody: true,\n      specifyBody: \"json\",\n      jsonBody: \"={{ JSON.stringify({ content: $json.content, embedding: $json.embedding, metadata: $json.metadata }) }}\",\n      options: { response: { response: { fullResponse: true, neverError: true } } },\n    },\n  },\n});\n\nconst ingestRespond = node({\n  type: \"n8n-nodes-base.code\",\n  version: 2,\n  config: {\n    name: \"Ingest Format Response\",\n    parameters: {\n      mode: \"runOnceForAllItems\",\n      jsCode: \"const prep = $('Ingest Prepare').first().json;\\\\nconst http = $input.first().json;\\\\nconst raw = http.body ?? http.data ?? '[]';\\\\nconst rows = Array.isArray(typeof raw === 'string' ? JSON.parse(raw) : raw) ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : [];\\\\nreturn [{ json: { ok: (http.statusCode ?? 0) >= 200 && (http.statusCode ?? 0) < 300, id: rows[0]?.id, content: prep.content } }];\",\n    },\n  },\n});\n\nconst queryPrepare = node({\n  type: \"n8n-nodes-base.code\",\n  version: 2,\n  config: {\n    name: \"Query Prepare\",\n    parameters: {\n      mode: \"runOnceForAllItems\",\n      jsCode: \"const root = $input.first().json;\\\\nconst body = root.body ?? root;\\\\nconst question = String(body.question ?? '').trim();\\\\nif (!question) throw new Error('Missing question');\\\\nconst mc = typeof body.match_count === 'number' ? body.match_count : 5;\\\\nconst mt = typeof body.match_threshold === 'number' ? body.match_threshold : 0.5;\\\\nconst sessionId = body.sessionId != null ? String(body.sessionId) : `rag-${Date.now()}`;\\\\nreturn [{ json: { question, match_count: Math.max(1, Math.floor(mc)), match_threshold: mt, sessionId } }];\",\n    },\n  },\n});\n\nconst queryEmbed = node({\n  type: \"n8n-nodes-base.httpRequest\",\n  version: 4.2,\n  config: {\n    name: \"Query Ollama Embed\",\n    parameters: {\n      method: \"POST\",\n      url: \"http://ollama:11434/api/embeddings\",\n      sendHeaders: true,\n      headerParameters: { parameters: [{ name: \"Content-Type\", value: \"application/json\" }] },\n      sendBody: true,\n      specifyBody: \"json\",\n      jsonBody: \"={{ JSON.stringify({ model: 'nomic-embed-text', prompt: $json.question }) }}\",\n      options: { response: { response: { fullResponse: true, neverError: true } } },\n    },\n  },\n});\n\nconst queryMatch = node({\n  type: \"n8n-nodes-base.httpRequest\",\n  version: 4.2,\n  config: {\n    name: \"Query Match Documents\",\n    parameters: {\n      method: \"POST\",\n      url: \"http://kong:8000/rest/v1/rpc/match_documents\",\n      sendHeaders: true,\n      headerParameters: {\n        parameters: [\n          { name: \"Content-Type\", value: \"application/json\" },\n          { name: \"apikey\", value: \"${anonJwt}\" },\n          { name: \"Authorization\", value: \"Bearer ${anonJwt}\" },\n        ],\n      },\n      sendBody: true,\n      specifyBody: \"json\",\n      jsonBody: \"={{ (() => { let emb = []; try { const raw = $json.body ?? $json.data ?? '{}'; const b = typeof raw === 'string' ? JSON.parse(raw) : raw; emb = b.embedding ?? []; } catch (e) { emb = []; } const prep = $('Query Prepare').first().json; return JSON.stringify({ query_embedding: emb, match_count: prep.match_count, match_threshold: prep.match_threshold }); })() }}\",\n      options: { response: { response: { fullResponse: true, neverError: true } } },\n    },\n  },\n});\n\nconst queryContext = node({\n  type: \"n8n-nodes-base.code\",\n  version: 2,\n  config: {\n    name: \"Query Build Context\",\n    parameters: {\n      mode: \"runOnceForAllItems\",\n      jsCode: \"const prep = $('Query Prepare').first().json;\\\\nconst http = $input.first().json;\\\\nconst raw = http.body ?? http.data ?? '[]';\\\\nconst matches = Array.isArray(typeof raw === 'string' ? JSON.parse(raw) : raw) ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : [];\\\\nconst ctx = matches.map((m,i)=>'Source ' + (i+1) + ': ' + (m.content||'')).join('\\\\\\\\n\\\\\\\\n');\\\\nconst sources = matches.map(m => ({ id: m.id, similarity: m.similarity, metadata: m.metadata }));\\\\nreturn [{ json: { question: prep.question, sessionId: prep.sessionId, context: ctx, sources } }];\",\n    },\n  },\n});\n\nconst queryChat = node({\n  type: \"n8n-nodes-base.httpRequest\",\n  version: 4.2,\n  config: {\n    name: \"Query Ollama Chat\",\n    parameters: {\n      method: \"POST\",\n      url: \"http://ollama:11434/api/chat\",\n      sendHeaders: true,\n      headerParameters: { parameters: [{ name: \"Content-Type\", value: \"application/json\" }] },\n      sendBody: true,\n      specifyBody: \"json\",\n      jsonBody: \"={{ JSON.stringify({ model: 'llama3.2:3b', stream: false, messages: [{ role: 'system', content: 'Answer using ONLY the context.\\\\n\\\\n' + $json.context }, { role: 'user', content: $json.question }] }) }}\",\n      options: { response: { response: { fullResponse: true, neverError: true } } },\n    },\n  },\n});\n\nconst queryRespond = node({\n  type: \"n8n-nodes-base.code\",\n  version: 2,\n  config: {\n    name: \"Query Format Response\",\n    parameters: {\n      mode: \"runOnceForAllItems\",\n      jsCode: \"const ctx = $('Query Build Context').first().json;\\\\nconst http = $input.first().json;\\\\nconst raw = http.body ?? http.data ?? '{}';\\\\nconst body = typeof raw === 'string' ? JSON.parse(raw) : raw;\\\\nconst answer = String(body?.message?.content ?? '');\\\\nreturn [{ json: { ok: true, answer, sources: ctx.sources, sessionId: ctx.sessionId } }];\",\n    },\n  },\n});\n\nexport default workflow(\"${slug}\", \"${safeName}\")\n  .add(ingestWebhook)\n  .to(ingestPrepare)\n  .to(ingestEmbed)\n  .to(ingestBuildRow)\n  .to(ingestInsert)\n  .to(ingestRespond)\n  .add(queryWebhook)\n  .to(queryPrepare)\n  .to(queryEmbed)\n  .to(queryMatch)\n  .to(queryContext)\n  .to(queryChat)\n  .to(queryRespond);\n`;\n\nreturn [{\n  json: {\n    workflowName,\n    ingestPath,\n    queryPath,\n    description,\n    sdkCode,\n    validateRpc: { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'validate_workflow', arguments: { code: sdkCode } } },\n    createRpc: { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'create_workflow_from_code', arguments: { code: sdkCode, name: workflowName, description } } },\n  },\n}];\n"
+      },
+      "id": "22222222-2222-4222-8222-222222222222",
+      "name": "Build SDK Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:5678/mcp-server/http",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json, text/event-stream"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.validateRpc) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "33333333-3333-4333-8333-333333333333",
+      "name": "MCP Validate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        740,
+        300
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "N8NMcpBearer001",
+          "name": "n8n MCP Access Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function parseMcpSse(raw) {\n  const text = typeof raw === 'string' ? raw : String(raw ?? '');\n  const dataLine = text.split(/\\r?\\n/).find((l) => l.startsWith('data: '));\n  if (!dataLine) throw new Error('Invalid MCP validate response: ' + text.slice(0, 500));\n  const payload = JSON.parse(dataLine.slice(6));\n  if (payload.error) throw new Error(payload.error.message || JSON.stringify(payload.error));\n  const t = payload.result?.content?.[0]?.text;\n  return t ? JSON.parse(t) : (payload.result?.structuredContent || {});\n}\nconst http = $input.first().json;\nconst v = parseMcpSse(http.body ?? http.data ?? '');\nif (!v.valid) throw new Error('Workflow validation failed: ' + JSON.stringify(v));\nconst built = $('Build SDK Payload').first().json;\nreturn [{ json: { ...built, validation: v } }];"
+      },
+      "id": "44444444-4444-4444-8444-444444444444",
+      "name": "Parse Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:5678/mcp-server/http",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json, text/event-stream"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.createRpc) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "55555555-5555-4555-8555-555555555555",
+      "name": "MCP Create",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1220,
+        300
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "N8NMcpBearer001",
+          "name": "n8n MCP Access Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function parseMcpSse(raw) {\n  const text = typeof raw === 'string' ? raw : String(raw ?? '');\n  const dataLine = text.split(/\\r?\\n/).find((l) => l.startsWith('data: '));\n  if (!dataLine) throw new Error('Invalid MCP create response: ' + text.slice(0, 500));\n  const payload = JSON.parse(dataLine.slice(6));\n  if (payload.error) throw new Error(payload.error.message || JSON.stringify(payload.error));\n  const t = payload.result?.content?.[0]?.text;\n  return t ? JSON.parse(t) : (payload.result?.structuredContent || {});\n}\nconst http = $input.first().json;\nconst created = parseMcpSse(http.body ?? http.data ?? '');\nconst built = $('Build SDK Payload').first().json;\nconst ingestUrl = `http://localhost:5678/webhook-test/${built.ingestPath}`;\nconst queryUrl = `http://localhost:5678/webhook-test/${built.queryPath}`;\nreturn [{\n  json: {\n    success: true,\n    workflowId: created.workflowId,\n    name: created.name,\n    url: created.url,\n    nodeCount: created.nodeCount,\n    ingestPath: built.ingestPath,\n    queryPath: built.queryPath,\n    ingestWebhookUrl: ingestUrl,\n    queryWebhookUrl: queryUrl,\n    response: `Created RAG workflow \"${created.name}\" (${created.nodeCount} nodes). Open ${created.url} to activate it, then POST ingest to ${ingestUrl} and query to ${queryUrl} (production webhooks use /webhook/... once active).`,\n  },\n}];"
+      },
+      "id": "66666666-6666-4666-8666-666666666666",
+      "name": "Format Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1460,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Build SDK Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build SDK Payload": {
+      "main": [
+        [
+          {
+            "node": "MCP Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Validate": {
+      "main": [
+        [
+          {
+            "node": "Parse Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Validate": {
+      "main": [
+        [
+          {
+            "node": "MCP Create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Create": {
+      "main": [
+        [
+          {
+            "node": "Format Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "979c2395-5912-578e-90cf-a63260fbbbb5",
+  "triggerCount": 0,
+  "tags": []
+}

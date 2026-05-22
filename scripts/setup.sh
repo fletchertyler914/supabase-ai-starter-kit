@@ -129,7 +129,7 @@ cat > "$CRED_FILE" <<EOF
 EOF
 ok "n8n credential points to ${OLLAMA_NODE_URL}"
 
-BUILDER_WORKFLOW_FILE="n8n/demo-data/workflows/d4e5f6a7b8c9012345678901234abcd.json"
+BUILDER_WORKFLOW_FILE="$(find "${ROOT}/n8n/demo-data/workflows" -name 'd4e5f6a7b8c9012345678901234abcd.json' 2>/dev/null | head -1)"
 if [ -f "$BUILDER_WORKFLOW_FILE" ]; then
   python3 - "$BUILDER_WORKFLOW_FILE" "$OLLAMA_BUILDER_MODEL" <<'PY'
 from pathlib import Path
@@ -197,7 +197,69 @@ for i in $(seq 1 60); do
   sleep 5
 done
 
-# ---------- 8. Configure n8n MCP token and credential ----------
+# ---------- 8. Ensure n8n owner account (REST bootstrap when DB has no users) ----------
+step "Ensuring n8n owner account"
+N8N_OWNER_EMAIL="${N8N_OWNER_EMAIL:-admin@starter-kit.local}"
+N8N_OWNER_PASSWORD="${N8N_OWNER_PASSWORD:-changeme-n8n-owner}"
+N8N_OWNER_FIRST_NAME="${N8N_OWNER_FIRST_NAME:-Starter}"
+N8N_OWNER_LAST_NAME="${N8N_OWNER_LAST_NAME:-Admin}"
+
+if docker compose ps --format '{{.Service}} {{.State}}' | grep -q '^db running'; then
+  OWNER_COUNT="$(docker exec supabase-db psql -U postgres -d postgres -t -A -c \
+    'SELECT COUNT(*)::text FROM n8n."user";' 2>/dev/null | tr -d '[:space:]' || true)"
+else
+  OWNER_COUNT=""
+fi
+
+if [ -n "${OWNER_COUNT:-}" ] && [ "${OWNER_COUNT}" != "0" ]; then
+  ok "n8n owner already present (${OWNER_COUNT} user(s))"
+else
+  OWNER_JSON="$(OWNER_EMAIL="$N8N_OWNER_EMAIL" OWNER_PASSWORD="$N8N_OWNER_PASSWORD" OWNER_FN="$N8N_OWNER_FIRST_NAME" OWNER_LN="$N8N_OWNER_LAST_NAME" python3 - <<'PY'
+import json, os
+
+print(
+    json.dumps(
+        {
+            "email": os.environ["OWNER_EMAIL"],
+            "firstName": os.environ["OWNER_FN"],
+            "lastName": os.environ["OWNER_LN"],
+            "password": os.environ["OWNER_PASSWORD"],
+        }
+    )
+)
+PY
+)"
+  OWNER_OK=0
+  for attempt in $(seq 1 12); do
+    BODY_FILE="$(mktemp)"
+    HTTP_CODE="$(curl -sS -o "$BODY_FILE" --connect-timeout 2 --max-time 30 \
+      -w '%{http_code}' \
+      -u "${N8N_AUTH_USER}:${N8N_AUTH_PASS}" \
+      -H 'Content-Type: application/json' \
+      -d "$OWNER_JSON" \
+      -X POST 'http://localhost:5678/rest/owner/setup' 2>/dev/null || echo 000)"
+    rm -f "$BODY_FILE"
+    if [ "$HTTP_CODE" = "200" ]; then
+      OWNER_OK=1
+      ok "Registered n8n owner (${N8N_OWNER_EMAIL}) via /rest/owner/setup"
+      break
+    fi
+    info "n8n owner setup attempt ${attempt}/12 HTTP ${HTTP_CODE} — retrying…"
+    if [ "$attempt" = "12" ]; then
+      warn "Could not bootstrap n8n owner via REST. Create owner in UI or retry setup."
+      break
+    fi
+    sleep 5
+  done
+  if [ "$OWNER_OK" = "1" ] && docker compose ps --format '{{.Service}} {{.State}}' | grep -q '^db running'; then
+    if [ "$(docker exec supabase-db psql -U postgres -d postgres -t -A -c \
+      'SELECT COUNT(*)::text FROM n8n."user";' 2>/dev/null | tr -d '[:space:]')" = "0" ]; then
+      warn "Owner setup returned 200 but n8n.user is still empty — check n8n logs."
+    fi
+  fi
+fi
+
+# ---------- 9. Configure n8n MCP token and credential ----------
 step "Configuring n8n MCP access"
 if docker compose ps --format '{{.Service}} {{.State}}' | grep -q '^db running'; then
   N8N_OWNER_ID="$(docker exec supabase-db psql -U postgres -d postgres -t -A -c \
@@ -282,7 +344,7 @@ else
   warn "No n8n owner account exists yet. Create your first n8n account, then re-run npm run setup to auto-wire MCP credentials."
 fi
 
-# ---------- 9. Pull model into container Ollama (if applicable) ----------
+# ---------- 10. Pull model into container Ollama (if applicable) ----------
 if [ "$USE_CONTAINER_OLLAMA" = "1" ]; then
   step "Pulling Ollama models into containerized Ollama"
   for model in "${OLLAMA_MODEL}" "${OLLAMA_BUILDER_MODEL}"; do
@@ -305,7 +367,7 @@ if [ "$SKIP_VALIDATE" = "0" ]; then
   fi
 fi
 
-# ---------- 11. Summary ----------
+# ---------- 12. Summary ----------
 step "Ready"
 cat <<EOF
 

@@ -48,8 +48,11 @@ else
   echo "No credential files to import (configure credentials in n8n UI per manifest)."
 fi
 
-echo "Importing template workflows..."
-n8n import:workflow --separate --input="$DEMO/workflows"
+echo "Importing template workflows (templates/)..."
+n8n import:workflow --separate --input="$DEMO/workflows/templates"
+
+echo "Importing builder helper workflows (builder-helpers/)..."
+n8n import:workflow --separate --input="$DEMO/workflows/builder-helpers"
 
 if [ -f "$ACTIVATE_FILE" ]; then
   echo "Activating template workflows from manifest..."

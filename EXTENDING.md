@@ -11,7 +11,7 @@ The kit is built so that extensions live in well-known directories, follow predi
 
 If you are an AI agent reading this, follow these rules:
 
-1. **n8n workflows** go in `n8n/demo-data/workflows/<id>.json`. After adding one, append its workflow ID to `n8n/demo-data/workflow-ids.activate` (one ID per line) and document it in `templates/README.md`.
+1. **n8n workflows**: ship curated templates under `n8n/demo-data/workflows/templates/<id>.json` and NodeBot Builder helpers under `n8n/demo-data/workflows/builder-helpers/<id>.json` (`workflows/examples/` is reserved for optional samples). After adding one, append its workflow ID to `n8n/demo-data/workflow-ids.activate` (one ID per line), run `npm run validate:workflows`, and document it in `templates/README.md`.
 2. **n8n credentials** go in `n8n/demo-data/credentials/<id>.json`. The `data` field is **AES-256-CBC** encrypted with the OpenSSL "Salted__" format using `N8N_ENCRYPTION_KEY` from `.env`. See [`Encrypting credentials`](#encrypting-credentials).
 3. **Chat Hub workflow agents** should use a new Chat Trigger with `availableInChat: true`, an `@n8n/n8n-nodes-langchain.agent` node with streaming enabled, and explicit tool connections. For workflow creation, prefer **dedicated `toolWorkflow` helper sub-workflows** that wrap the MCP authoring loop. Only fall back to a raw MCP Client Tool for cases that don't fit a helper. See [`Add a Chat Hub workflow agent`](#add-a-chat-hub-workflow-agent).
 4. **Chat Hub personal agents** are stored in the `n8n.chat_hub_agents` table, not as exported workflow JSON. Configure them via idempotent `INSERT ... ON CONFLICT` in `n8n/demo-data/bootstrap.sql`. See [`Add a Chat Hub personal agent`](#add-a-chat-hub-personal-agent).
@@ -36,7 +36,9 @@ If you are an AI agent reading this, follow these rules:
 │  └─ demo-data/
 │     ├─ manifest.json         # human-readable index of seeded workflows
 │     ├─ workflow-ids.activate # one workflow ID per line to auto-activate
-│     ├─ workflows/<id>.json   # exported workflows (incl. builder helpers)
+│     ├─ workflows/templates/<id>.json   # shipped “Template - …” exports
+│     ├─ workflows/builder-helpers/<id>.json # SK helpers + tooling sub-workflows
+│     ├─ workflows/examples/          # placeholder for optional samples (.gitkeep)
 │     ├─ credentials/<id>.json # AES-256-CBC encrypted with N8N_ENCRYPTION_KEY
 │     ├─ bootstrap.sql         # idempotent SQL: chat_hub_agents, sharing, MCP enablement
 │     └─ import-templates.sh   # runs once in n8n-import container
@@ -66,7 +68,7 @@ The "1-minute" path (in the n8n UI):
 
 1. Open http://localhost:5678 → New workflow → build it.
 2. Export it: ⋯ menu → Download → save the JSON.
-3. Save the JSON to `n8n/demo-data/workflows/<id>.json` where `<id>` is the workflow's ID from the JSON `"id"` field.
+3. Save the JSON to `n8n/demo-data/workflows/templates/<id>.json` (user-facing templates) **or** `n8n/demo-data/workflows/builder-helpers/<id>.json` (builder tooling) where `<id>` is the workflow's ID from the JSON `"id"` field.
 4. If it should auto-activate on first start: append the ID on its own line in `n8n/demo-data/workflow-ids.activate`.
 5. Add a row to `templates/README.md` so users can find it.
 
@@ -114,6 +116,8 @@ Use this pattern when you want a conversational agent inside n8n's **Chat → Wo
    | `Create_Scheduled_Workflow` | `SK - Create Scheduled Workflow` | `b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7` | Schedule Trigger (cron) + Set log |
    | `List_Workflows` | `SK - List Workflows` | `c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8` | MCP `search_workflows` wrapper, formatted |
 
+   See `n8n/demo-data/manifest.json` and `workflows/builder-helpers/*.json` for the full set of SK helpers (create/update/publish/delete workflows, Supabase row triggers, RAG authoring, status, analytics logging, etc.).
+
    **Layer 2 — `mcpClientTool`** wired to `http://127.0.0.1:5678/mcp-server/http` with the seeded `N8NMcpBearer001` bearer credential. Exposes `get_sdk_reference`, `search_nodes`, `get_node_types`, `validate_workflow`, `create_workflow_from_code`, `update_workflow`, `publish_workflow`, `search_workflows`, `get_workflow_details`, `execute_workflow`. Only used when no helper fits.
 
    Each helper:
@@ -124,7 +128,7 @@ Use this pattern when you want a conversational agent inside n8n's **Chat → Wo
 
 #### Adding a new fast helper
 
-1. Copy an existing helper, e.g. `n8n/demo-data/workflows/a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6.json` (the webhook helper), to a new file. Generate a fresh 32-char hex ID for both the file name and the `id` field.
+1. Copy an existing helper, e.g. `n8n/demo-data/workflows/builder-helpers/a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6.json` (the webhook helper), to a new file. Generate a fresh 32-char hex ID for both the file name and the `id` field.
 2. Update `workflowInputs` on the `executeWorkflowTrigger` node:
    ```json
    "workflowInputs": {
@@ -137,11 +141,11 @@ Use this pattern when you want a conversational agent inside n8n's **Chat → Wo
 3. Rewrite the `Build SDK Payload` Code node's `jsCode` to emit the SDK code your pattern needs. Use one of the existing helpers as a template — they all follow the same `defineWorkflow → manualTrigger/webhook/schedule → set` shape.
 4. Leave `MCP Validate`, `Parse Validate`, `MCP Create`, and `Format Result` nodes unchanged — they're generic.
 5. Append the new ID to `n8n/demo-data/workflow-ids.activate` and add a row to `n8n/demo-data/manifest.json`.
-6. Open `n8n/demo-data/workflows/d4e5f6a7b8c9012345678901234abcd.json` (NodeBot Builder) and:
+6. Open `n8n/demo-data/workflows/templates/d4e5f6a7b8c9012345678901234abcd.json` (NodeBot Builder) and:
    - Add a new `@n8n/n8n-nodes-langchain.toolWorkflow` node with a `description` that mirrors the helper's purpose and `workflowInputs` that map `$fromAI` placeholders to the helper's named inputs.
    - Wire it into `connections."NodeBot Builder Agent"."ai_tool"`.
    - Add the helper to the "FAST HELPERS" list in the system prompt and add a matching `suggestedPrompts` entry to the Chat Trigger.
-7. Update `scripts/test-n8n-templates.sh` to expect the new tool count and helper ID.
+7. Update `EXPECTED_TOTAL_HELPERS`, the NodeBot `toolWorkflow` count assertion, and helper coverage in `scripts/test-n8n-templates.sh`.
 8. Update `templates/README.md`.
 9. Re-import: `docker exec n8n rm -f /home/node/.n8n/.template-seed-complete && docker compose run --rm n8n-import && docker compose restart n8n`.
 

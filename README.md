@@ -26,8 +26,9 @@ An open-source, Infrastructure-as-Code template that gives you a complete self-h
 ### 🧠 **AI Integration Platform**
 
 - **n8n Workflows** - Visual automation for AI pipelines and integrations
-- **Preconfigured Chat Hub agents** - Personal "Local Ollama Agent" + Workflow agent "NodeBot Builder" appear on first login, wired to local Ollama
-- **NodeBot Builder** - Describe a workflow in chat, it gets built. Uses 4 fast-helper sub-workflows + n8n's instance-level MCP under the hood
+- **Preconfigured Chat Hub agents** - Personal "Local Ollama Agent" + Workflow agents "AI Starter Console" and "NodeBot Builder"
+- **NodeBot Builder** - Describe a workflow in chat, it gets built. Uses 9 fast-helper sub-workflows + n8n's instance-level MCP under the hood
+- **RAG template** - Document ingest + semantic query webhooks backed by pgvector (`nomic-embed-text` embeddings)
 - **Vector Search** - Semantic search and RAG (Retrieval Augmented Generation)
 - **AI Model Connectors** - Pre-configured for OpenAI, Anthropic, Ollama, and more
 - **Batch Processing** - Background jobs for training and large-scale operations
@@ -78,7 +79,7 @@ cd supabase-ai-starter-kit
 npm run setup
 ```
 
-That runs an interactive wizard which checks Docker, detects Ollama (host or containerized), generates `.env`, pulls the chat model (`llama3.2:3b`, ~2 GB) and the NodeBot Builder model (`OLLAMA_BUILDER_MODEL`, `llama3.2:3b` by default), starts the full stack, seeds the Chat Hub agents + 7 n8n workflows (3 user-facing + 4 builder helpers), issues an MCP access token from the first n8n owner, runs the full validation suite, and opens n8n in your browser.
+That runs an interactive wizard which checks Docker, detects Ollama (host or containerized), generates `.env`, pulls the chat model (`llama3.2:3b`, ~2 GB) and the NodeBot Builder model (`OLLAMA_BUILDER_MODEL`, `llama3.2:3b` by default), starts the full stack, seeds the Chat Hub agents + 17 n8n workflows (6 user-facing templates + 11 builder helpers), issues an MCP access token from the first n8n owner, runs the full validation suite, and opens n8n in your browser.
 
 See [QUICKSTART.md](./QUICKSTART.md) for the non-dev walkthrough, [EXTENDING.md](./EXTENDING.md) for adding workflows/integrations (designed to be followed by AI agents like Cursor/Claude too), and [DEPLOY.md](./DEPLOY.md) for honest deployment options (Cloudflare Tunnel, Coolify on a VPS, Fly.io, hybrid Cloud).
 
@@ -219,6 +220,9 @@ User-facing templates ([`templates/README.md`](./templates/README.md)):
 | **Local Ollama Chat** | LangChain chat (public webhook) | Streaming chat with your local Ollama model |
 | **Supabase API Health Check** | `POST /webhook/template-supabase-health` | Verifies Kong/Auth health from inside Docker |
 | **NodeBot Builder** | Chat Hub workflow agent | Conversationally builds, lists, and manages n8n workflows |
+| **Document Ingest + Query** | Webhooks `template-rag-ingest` / `template-rag-query` | RAG with pgvector + Ollama embeddings |
+| **AI Starter Console** | Chat Hub workflow agent | Guided tour, status, template launcher |
+| **Starter Kit Index** | Webhook `GET /webhook/template-kit-index` | JSON catalog of templates, helpers, and URLs |
 
 Builder helper sub-workflows (called internally by NodeBot Builder, not for direct use):
 
@@ -227,12 +231,19 @@ Builder helper sub-workflows (called internally by NodeBot Builder, not for dire
 | `SK - Create Greeting Workflow` | Manual Trigger + Set greeting |
 | `SK - Create Webhook Workflow` | POST webhook + normalized JSON response |
 | `SK - Create Scheduled Workflow` | Schedule Trigger (cron) + Set log |
-| `SK - List Workflows` | Formatted wrapper around MCP `search_workflows` |
+| `SK - Create RAG Workflow` | RAG ingest + query webhooks |
+| `SK - List / Update / Activate / Delete Workflow` | Workflow management |
+| `SK - Create Supabase Row Trigger Workflow` | Postgres row-change trigger |
+| `SK - Starter Kit Status` | Read-only stack readiness summary |
+| `SK - Record AI Call` | Observability insert into `ai_calls` |
 
 ```bash
 npm run test:templates          # import + workflow shape checks + webhook smoke test
+npm run test:rag                # RAG ingest + query end-to-end
 npm run test:builder            # MCP + NodeBot Builder readiness
 npm run test:ollama             # end-to-end LLM chat through the n8n webhook
+npm run validate:workflows      # JSON seed validation (also runs in CI)
+npm run backup                  # pg_dump + n8n/storage tarball
 curl -s -X POST http://localhost:5678/webhook/template-supabase-health
 ```
 

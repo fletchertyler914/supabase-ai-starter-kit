@@ -3,7 +3,7 @@
   "updatedAt": "2025-06-29T15:00:31.391Z",
   "id": "bKhNvmpDfT4mclXo",
   "name": "Template - Local Ollama Chat",
-  "active": false,
+  "active": true,
   "nodes": [
     {
       "parameters": {

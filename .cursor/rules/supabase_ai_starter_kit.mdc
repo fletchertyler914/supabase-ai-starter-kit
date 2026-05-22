@@ -14,9 +14,10 @@ This is a comprehensive **Infrastructure-as-Code Supabase AI Starter Kit** that 
 - **Full Supabase Backend**: Database, Auth, Realtime, Storage, Edge Functions
 - **Kong API Gateway**: Professional API management and routing
 - **n8n Workflow Automation**: AI workflow orchestration and integrations
-- **Preconfigured Chat Hub agents**: Personal agent (Local Ollama Agent) + Workflow agent (NodeBot Builder), wired to Ollama on first start
+- **Preconfigured Chat Hub agents**: Personal agent (Local Ollama Agent) + Workflow agents (AI Starter Console and NodeBot Builder), wired to Ollama on first start
 - **Instance-level MCP**: n8n's workflow-builder MCP server enabled and gated by a bearer token managed by `scripts/setup.sh`
-- **Builder helper sub-workflows**: Four fast-path helpers so small local models can reliably author n8n workflows
+- **Template library**: 17 seeded workflows (6 user-facing templates + 11 builder helpers), including RAG, Starter Console, and JSON index webhooks
+- **Builder helper sub-workflows**: 11 fast-path helpers so small local models can reliably author and manage n8n workflows
 - **Development Email**: Inbucket for testing email flows
 - **Testing Infrastructure**: Node.js + shell tests covering auth, DB, templates, MCP, and Ollama
 - **NPM Workflow**: Convenient script management for all operations
@@ -36,7 +37,7 @@ This is a comprehensive **Infrastructure-as-Code Supabase AI Starter Kit** that 
 
 ### **AI/Automation Services**
 - **`n8n`**: Workflow automation platform (port 5678)
-- **`n8n-import`**: One-shot container that imports `n8n/demo-data/workflows/*.json` and `credentials/*.json` once per fresh `volumes/n8n`
+- **`n8n-import`**: One-shot container that imports `n8n/demo-data/workflows/templates/*.json`, `n8n/demo-data/workflows/builder-helpers/*.json`, and `credentials/*.json` once per fresh `volumes/n8n`
 - **`n8n-bootstrap`**: One-shot container that runs `n8n/demo-data/bootstrap.sql` on every start — idempotent SQL for `chat_hub_agents`, workflow/credential sharing, and MCP enablement
 - **n8n schema in Postgres**: Shared with Supabase Postgres in the same database; PostgREST excludes it via `PGRST_DB_SCHEMAS`
 - **Instance-level MCP**: HTTP JSON-RPC at `http://localhost:5678/mcp-server/http`, bearer-auth via `N8N_MCP_ACCESS_TOKEN`
@@ -241,7 +242,7 @@ npm run test:ollama    # full Ollama chat round-trip through n8n
 - **Webhook Handlers**: External service integrations
 - **Scheduled Jobs**: Batch processing, cleanup tasks
 - **Chat Hub agents**: Personal agents (`n8n.chat_hub_agents` table, configured in `n8n/demo-data/bootstrap.sql`) and Workflow agents (exported workflow JSON with Chat Trigger v1.4+ and AI Agent v3.1+)
-- **Builder helpers**: `toolWorkflow` nodes pointing at dedicated sub-workflows that wrap MCP `validate_workflow` + `create_workflow_from_code`. Pattern: `executeWorkflowTrigger` with named `workflowInputs` → `Code` node that builds SDK TypeScript → `httpRequest` to MCP `validate_workflow` → branch on validation → `httpRequest` to MCP `create_workflow_from_code` → `Code` node that formats the result. See the four `SK - Create *` / `SK - List *` workflows for canonical shape.
+- **Builder helpers**: `toolWorkflow` nodes pointing at dedicated sub-workflows that wrap MCP calls. Pattern: `executeWorkflowTrigger` with named `workflowInputs` → `Code` node that builds or formats payloads → `httpRequest` to MCP tools such as `validate_workflow`, `create_workflow_from_code`, `search_workflows`, `publish_workflow`, `unpublish_workflow`, or `archive_workflow` → `Code` node that formats the result. See the `SK - Create *`, `SK - List *`, workflow-management, status, and telemetry helpers for canonical shapes.
 
 ### **Testing Strategy**
 - **Node.js Scripts**: Authentication flow testing (`scripts/`)
@@ -440,7 +441,7 @@ project-root/
 │   ├── logs/vector.yml      # Vector pipeline → Logflare
 │   └── pooler/pooler.exs    # Supavisor tenant bootstrap
 ├── n8n/demo-data/           # Seeded n8n workflows, credentials, SQL bootstrap
-│   ├── workflows/           # 3 user-facing templates + 4 builder helper sub-workflows
+│   ├── workflows/           # workflows/templates + workflows/builder-helpers (+ optional examples/)
 │   ├── credentials/         # ollamaApi + httpBearerAuth (MCP), AES-256-CBC encrypted
 │   ├── bootstrap.sql        # idempotent SQL for chat_hub_agents + sharing
 │   ├── manifest.json

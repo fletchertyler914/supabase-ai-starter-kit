@@ -13,7 +13,8 @@ networks:
     driver: bridge
 
 x-n8n: &service-n8n
-  image: n8nio/n8n:latest
+  # Pinned for reproducible CI/local runs.
+  image: n8nio/n8n:2.21.7
   networks:
     - supastar
   environment:
@@ -43,7 +44,7 @@ x-n8n: &service-n8n
     - .env
 
 x-ollama: &service-ollama
-  image: ollama/ollama:latest
+  image: ollama/ollama:0.24.0
   container_name: ollama
   networks:
     - supastar
@@ -60,7 +61,7 @@ x-ollama: &service-ollama
     - OLLAMA_LOAD_TIMEOUT=10m0s
 
 x-init-ollama: &init-ollama
-  image: ollama/ollama:latest
+  image: ollama/ollama:0.24.0
   container_name: ollama-init
   networks:
     - supastar
@@ -77,7 +78,7 @@ x-init-ollama: &init-ollama
 services:
   studio:
     container_name: supabase-studio
-    image: supabase/studio:2025.06.02-sha-8f2993d
+    image: supabase/studio:2026.04.27-sha-5f60601
     restart: unless-stopped
     networks:
       - supastar
@@ -119,37 +120,50 @@ services:
 
   kong:
     container_name: supabase-kong
-    image: kong:2.8.1
+    image: kong/kong:3.9.1
     restart: unless-stopped
     networks:
-      - supastar
+      supastar:
+        aliases:
+          - api-gw
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     ports:
       - ${KONG_HTTP_PORT}:8000/tcp
       - ${KONG_HTTPS_PORT}:8443/tcp
     volumes:
       # https://github.com/supabase/supabase/issues/12661
       - ./volumes/api/kong.yml:/home/kong/temp.yml:ro,z
+      - ./volumes/api/kong-entrypoint.sh:/home/kong/kong-entrypoint.sh:ro,z
     depends_on:
       analytics:
         condition: service_healthy
     environment:
       KONG_DATABASE: 'off'
-      KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
+      KONG_DECLARATIVE_CONFIG: /usr/local/kong/kong.yml
       # https://github.com/supabase/cli/issues/14
       KONG_DNS_ORDER: LAST,A,CNAME
-      KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
+      KONG_DNS_NOT_FOUND_TTL: 1
+      KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth,request-termination,ip-restriction,post-function
       KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
       KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
+      KONG_PROXY_ACCESS_LOG: /dev/stdout combined
       SUPABASE_ANON_KEY: ${ANON_KEY}
       SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-}
+      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY:-}
+      ANON_KEY_ASYMMETRIC: ${ANON_KEY_ASYMMETRIC:-}
+      SERVICE_ROLE_KEY_ASYMMETRIC: ${SERVICE_ROLE_KEY_ASYMMETRIC:-}
       DASHBOARD_USERNAME: ${DASHBOARD_USERNAME}
       DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
-    # https://unix.stackexchange.com/a/294837
-    entrypoint: bash -c 'eval "echo \"$$(cat ~/temp.yml)\"" > ~/kong.yml && /docker-entrypoint.sh kong docker-start'
+    entrypoint: /home/kong/kong-entrypoint.sh
 
   auth:
     container_name: supabase-auth
-    image: supabase/gotrue:v2.174.0
+    image: supabase/gotrue:v2.186.0
     restart: unless-stopped
     networks:
       - supastar
@@ -234,7 +248,7 @@ services:
 
   rest:
     container_name: supabase-rest
-    image: postgrest/postgrest:v12.2.12
+    image: postgrest/postgrest:v14.8
     restart: unless-stopped
     networks:
       - supastar
@@ -257,7 +271,7 @@ services:
   realtime:
     # This container name looks inconsistent but is correct because realtime constructs tenant id by parsing the subdomain
     container_name: realtime-dev.supabase-realtime
-    image: supabase/realtime:v2.34.47
+    image: supabase/realtime:v2.76.5
     restart: unless-stopped
     networks:
       - supastar
@@ -304,7 +318,7 @@ services:
   # To use S3 backed storage: docker compose -f docker-compose.yml -f docker/docker-compose.s3.yml up
   storage:
     container_name: supabase-storage
-    image: supabase/storage-api:v1.23.0
+    image: supabase/storage-api:v1.48.26
     restart: unless-stopped
     networks:
       - supastar
@@ -318,7 +332,7 @@ services:
           '--no-verbose',
           '--tries=1',
           '--spider',
-          'http://storage:5000/status',
+          'http://127.0.0.1:5000/status',
         ]
       timeout: 5s
       interval: 5s
@@ -349,7 +363,7 @@ services:
 
   imgproxy:
     container_name: supabase-imgproxy
-    image: darthsim/imgproxy:v3.8.0
+    image: darthsim/imgproxy:v3.30.1
     restart: unless-stopped
     networks:
       - supastar
@@ -368,7 +382,7 @@ services:
 
   meta:
     container_name: supabase-meta
-    image: supabase/postgres-meta:v0.89.3
+    image: supabase/postgres-meta:v0.96.3
     restart: unless-stopped
     networks:
       - supastar
@@ -388,7 +402,7 @@ services:
 
   functions:
     container_name: supabase-edge-functions
-    image: supabase/edge-runtime:v1.67.4
+    image: supabase/edge-runtime:v1.71.2
     restart: unless-stopped
     networks:
       - supastar
@@ -402,6 +416,7 @@ services:
       SUPABASE_URL: http://kong:8000
       SUPABASE_ANON_KEY: ${ANON_KEY}
       SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       SUPABASE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
       # TODO: Allow configuring VERIFY_JWT per function. This PR might help: https://github.com/supabase/cli/pull/786
       VERIFY_JWT: '${FUNCTIONS_VERIFY_JWT}'
@@ -409,7 +424,7 @@ services:
 
   analytics:
     container_name: supabase-analytics
-    image: supabase/logflare:1.14.2
+    image: supabase/logflare:1.36.1
     restart: unless-stopped
     ports:
       - 4000:4000
@@ -456,7 +471,7 @@ services:
 
   db:
     container_name: supabase-db
-    image: supabase/postgres:15.8.1.060
+    image: supabase/postgres:15.8.1.085
     networks:
       - supastar
     restart: unless-stopped
@@ -480,6 +495,9 @@ services:
       - ./volumes/db/n8n.sql:/docker-entrypoint-initdb.d/migrations/99-n8n.sql:Z
       # Enable pgvector extension for vector similarity search
       - ./volumes/db/vector.sql:/docker-entrypoint-initdb.d/migrations/99-vector.sql:Z
+      - ./volumes/db/match_documents.sql:/docker-entrypoint-initdb.d/migrations/99-match-documents.sql:Z
+      # AI call telemetry (run after pgvector helpers; basename sorts after match-documents)
+      - ./volumes/db/ai_calls.sql:/docker-entrypoint-initdb.d/migrations/101-ai_calls.sql:Z
       # Use named volume to persist pgsodium decryption key between restarts
       - db-config:/etc/postgresql-custom
     healthcheck:
@@ -510,7 +528,7 @@ services:
 
   vector:
     container_name: supabase-vector
-    image: timberio/vector:0.28.1-alpine
+    image: timberio/vector:0.53.0-alpine
     restart: unless-stopped
     networks:
       - supastar
@@ -539,7 +557,7 @@ services:
   # Update the DATABASE_URL if you are using an external Postgres database
   supavisor:
     container_name: supabase-pooler
-    image: supabase/supavisor:2.5.1
+    image: supabase/supavisor:2.7.4
     restart: unless-stopped
     networks:
       - supastar
@@ -667,7 +685,7 @@ services:
   ollama-init-gpu-amd:
     profiles: ['gpu-amd']
     <<: *init-ollama
-    image: ollama/ollama:rocm
+    image: ollama/ollama:0.24.0-rocm
     depends_on:
       ollama-gpu-amd:
         condition: service_started
@@ -690,7 +708,7 @@ services:
   ollama-gpu-amd:
     profiles: ['gpu-amd']
     <<: *service-ollama
-    image: ollama/ollama:rocm
+    image: ollama/ollama:0.24.0-rocm
     devices:
       - '/dev/kfd'
       - '/dev/dri'

@@ -1,0 +1,238 @@
+{
+  "createdAt": "2026-05-22T12:00:00.000Z",
+  "updatedAt": "2026-05-22T12:00:00.000Z",
+  "id": "f3e4d5c6b7a8999002cdef345678901b",
+  "name": "SK - Update Workflow",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "workflowId",
+              "type": "string"
+            },
+            {
+              "name": "workflowName",
+              "type": "string"
+            },
+            {
+              "name": "description",
+              "type": "string"
+            },
+            {
+              "name": "active",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "f3e40303t",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        260,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const input = $input.first().json;\nconst workflowId = String(input.workflowId || '').trim();\nif (!workflowId) throw new Error('workflowId is required.');\nreturn [{\n  json: {\n    workflowId,\n    workflowName: input.workflowName != null ? String(input.workflowName) : '',\n    description: input.description != null ? String(input.description) : '',\n    active: input.active != null ? String(input.active) : '',\n    validateRpc: {\n      jsonrpc: '2.0',\n      id: 1,\n      method: 'tools/call',\n      params: { name: 'get_workflow_details', arguments: { workflowId } },\n    },\n  },\n}];"
+      },
+      "id": "f3e40303b",
+      "name": "Build SDK Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ]
+    },
+    {
+      "id": "f3e40303v",
+      "name": "MCP Validate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        740,
+        300
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "N8NMcpBearer001",
+          "name": "n8n MCP Access Token"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:5678/mcp-server/http",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json, text/event-stream"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.validateRpc) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "text"
+            }
+          }
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function sanitizeJsString(s) {\n  return String(s)\n    .replace(/\\\\/g, '\\\\\\\\')\n    .replace(/\"/g, '\\\\\"')\n    .replace(/\\n/g, '\\\\n')\n    .replace(/\\r/g, '');\n}\nfunction slugify(name) {\n  const x = String(name || 'workflow').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');\n  return x || 'workflow';\n}\nfunction incomingCount(nodeName, connections) {\n  let c = 0;\n  for (const [, out] of Object.entries(connections || {})) {\n    for (const edge of out?.main?.[0] || []) {\n      if (edge?.node === nodeName) c++;\n    }\n  }\n  return c;\n}\nfunction linearPath(root, connections, maxSteps) {\n  const path = [root];\n  let cur = root;\n  const seen = new Set(path);\n  for (let i = 0; i < maxSteps; i++) {\n    const nexts = connections?.[cur]?.main?.[0] || [];\n    if (!nexts.length) break;\n    if (nexts.length > 1) throw new Error('Branching workflows are not supported by this helper.');\n    const nxt = nexts[0]?.node;\n    if (!nxt || seen.has(nxt)) throw new Error('Cycle or broken connection chain.');\n    seen.add(nxt);\n    path.push(nxt);\n    cur = nxt;\n  }\n  return path;\n}\nfunction chooseTriggerRootName(nodes, connections) {\n  const roots = (nodes || []).filter((n) => incomingCount(n.name, connections) === 0);\n  if (!roots.length) throw new Error('Could not locate a root trigger (no incoming edges).');\n  const trigLike = roots.filter((n) => {\n    const t = String(n.type || '');\n    return t.endsWith('Trigger')\n      || t.includes('postgresTrigger')\n      || t.endsWith('.webhook')\n      || t.includes('chatTrigger')\n      || t.endsWith('.formTrigger');\n  });\n  const pick = trigLike.length ? trigLike : roots;\n  if (pick.length > 1) throw new Error('Multiple orphan roots unsupported.');\n  return pick[0].name;\n}\nfunction graphToSdk(wfInner, overrides) {\n  const nodesSrc = wfInner.activeVersion?.nodes?.length ? wfInner.activeVersion.nodes : wfInner.nodes;\n  const connsSrc = wfInner.activeVersion?.connections ?? wfInner.connections ?? {};\n  if (!nodesSrc?.length) throw new Error('Workflow has no nodes.');\n  const byName = Object.fromEntries(nodesSrc.map((n) => [n.name, n]));\n  const root = chooseTriggerRootName(nodesSrc, connsSrc);\n  const path = linearPath(root, connsSrc, 96);\n  const baseTitle = wfInner.name || 'workflow';\n  const titled = overrides.title ? String(overrides.title).trim().slice(0, 128) : baseTitle.slice(0, 128);\n  const finalTitle = sanitizeJsString(titled);\n  const slug = slugify(titled.replace(/[^\\x20-\\x7E]+/g, ''));\n  let code = 'import { workflow, node, trigger } from \"@n8n/workflow-sdk\";\\n\\n';\n  path.forEach((nm, idx) => {\n    const n = byName[nm];\n    if (!n) throw new Error('Missing node ' + nm);\n    const t = String(n.type || '');\n    const isTrig = (\n      t.endsWith('Trigger')\n      || t.includes('postgresTrigger')\n      || t.endsWith('.webhook')\n      || t.includes('chatTrigger')\n      || t.endsWith('.formTrigger')\n    );\n    const vn = 'step' + idx;\n    const tv = Number.isFinite(Number(n.typeVersion)) ? Number(n.typeVersion) : 1;\n    const params = JSON.stringify(n.parameters ?? {});\n    const innerBody = '{\\n      name: \"' + sanitizeJsString(String(n.name || vn)) + '\",\\n      parameters: (' + params + ') as unknown as Record<string, unknown>,\\n    }';\n    const factory = isTrig ? 'trigger' : 'node';\n    code += 'const ' + vn + ' = ' + factory + '({\\n  type: \"' + sanitizeJsString(t) + '\",\\n  version: ' + tv + ',\\n  config: ' + innerBody + ',\\n});\\n\\n';\n  });\n  let tail = '.add(step0)';\n  for (let i = 1; i < path.length; i++) tail += '.to(step' + i + ')';\n  code += 'export default workflow(\"' + slug + '\", \"' + finalTitle + '\")' + tail + ';\\n';\n  let desc = wfInner.description != null ? String(wfInner.description) : '';\n  if (overrides.description != null && String(overrides.description).trim()) {\n    desc = String(overrides.description).trim();\n  }\n  desc = desc.slice(0, 255);\n  return { code, name: titled, description: desc };\n}\n\n\nfunction parseMcpSse(raw) {\n  const text = typeof raw === 'string' ? raw : String(raw ?? '');\n  const dataLine = text.split(/\r?\n/).find((line) => line.startsWith('data: '));\n  if (!dataLine) throw new Error('Invalid MCP response: ' + text.slice(0, 400));\n  const payload = JSON.parse(dataLine.slice(6));\n  if (payload.error) throw new Error(payload.error.message || JSON.stringify(payload.error));\n  const contentText = payload.result?.content?.[0]?.text;\n  if (contentText) {\n    try { return JSON.parse(contentText); } catch { return {}; }\n  }\n  return payload.result?.structuredContent || {};\n}\n\nconst packed = $('Build SDK Payload').first().json;\nconst raw = $('MCP Validate').first().json.body ?? $('MCP Validate').first().json.data ?? '';\nconst details = parseMcpSse(raw);\nconst wfInner = details.workflow || details;\nif (!wfInner?.nodes?.length) throw new Error('Unexpected get_workflow_details payload');\nconst overrides = {};\nif (packed.workflowName && String(packed.workflowName).trim() !== '') {\n  overrides.title = String(packed.workflowName).trim();\n}\nif (packed.description !== undefined && String(packed.description).trim() !== '') {\n  overrides.description = String(packed.description).trim();\n}\nlet graphNote = '';\nif (packed.active !== undefined && String(packed.active).trim() !== '') {\n  graphNote = 'Note: toggle active with SK - Activate/Deactivate Workflow.';\n}\nlet built;\ntry {\n  built = graphToSdk(wfInner, overrides);\n} catch (e) {\n  throw new Error('Cannot build SDK update payload: ' + e.message);\n}\nreturn [{\n  json: {\n    ...packed,\n    graphNote,\n    updateRpc: {\n      jsonrpc: '2.0',\n      id: 2,\n      method: 'tools/call',\n      params: {\n        name: 'update_workflow',\n        arguments: {\n          workflowId: packed.workflowId,\n          code: built.code,\n          name: built.name,\n          description: built.description,\n        },\n      },\n    },\n  },\n}];"
+      },
+      "id": "f3e40303p",
+      "name": "Parse Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        300
+      ]
+    },
+    {
+      "id": "f3e40303c",
+      "name": "MCP Create",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1220,
+        300
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "N8NMcpBearer001",
+          "name": "n8n MCP Access Token"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:5678/mcp-server/http",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json, text/event-stream"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.updateRpc) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "text"
+            }
+          }
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function parseMcpSse(raw) {\n  const text = typeof raw === 'string' ? raw : String(raw ?? '');\n  const dataLine = text.split(/\r?\n/).find((line) => line.startsWith('data: '));\n  if (!dataLine) throw new Error('Invalid MCP response: ' + text.slice(0, 400));\n  const payload = JSON.parse(dataLine.slice(6));\n  if (payload.error) throw new Error(payload.error.message || JSON.stringify(payload.error));\n  const contentText = payload.result?.content?.[0]?.text;\n  if (contentText) {\n    try { return JSON.parse(contentText); } catch { return {}; }\n  }\n  return payload.result?.structuredContent || {};\n}\n\nconst packed = $('Parse Validate').first().json;\nconst http = $input.first().json;\nconst out = parseMcpSse(http.body ?? http.data ?? '');\nreturn [{\n  json: {\n    success: true,\n    workflowId: out.workflowId,\n    name: out.name,\n    url: out.url,\n    nodeCount: out.nodeCount,\n    graphNote: packed.graphNote || '',\n    response: out.url ? ('Updated workflow \"' + String(out.name) + '\". Open ' + String(out.url)) : JSON.stringify(out).slice(0, 800),\n  },\n}];\n"
+      },
+      "id": "f3e40303f",
+      "name": "Format Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1460,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Build SDK Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build SDK Payload": {
+      "main": [
+        [
+          {
+            "node": "MCP Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Validate": {
+      "main": [
+        [
+          {
+            "node": "Parse Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Validate": {
+      "main": [
+        [
+          {
+            "node": "MCP Create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Create": {
+      "main": [
+        [
+          {
+            "node": "Format Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "ecd60673-02ce-56e1-96a9-512603f83522",
+  "tags": []
+}

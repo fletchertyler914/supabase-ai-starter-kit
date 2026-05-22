@@ -1,0 +1,238 @@
+{
+  "createdAt": "2026-05-22T12:00:00.000Z",
+  "updatedAt": "2026-05-22T12:00:00.000Z",
+  "id": "f6e7d8c9b0a1222335f6789012345ef",
+  "name": "SK - Create Supabase Row Trigger Workflow",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "workflowName",
+              "type": "string"
+            },
+            {
+              "name": "tableName",
+              "type": "string"
+            },
+            {
+              "name": "schemaName",
+              "type": "string"
+            },
+            {
+              "name": "description",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "f6060606t",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        260,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const input = $input.first().json;\nconst workflowName = String(input.workflowName || 'DB row listener').trim().slice(0, 128);\nconst tableName = String(input.tableName || '').trim();\nconst schemaName = String(input.schemaName != null && String(input.schemaName).trim() ? input.schemaName : 'public').trim();\nconst description = String(input.description || ('Postgres Trigger on ' + schemaName + '.' + tableName)).slice(0, 255);\nif (!tableName) throw new Error('tableName is required.');\nconst safeName = workflowName.replace(/\\\\/g, '\\\\\\\\').replace(/\"/g, '\\\\\"');\nconst safeTable = tableName.replace(/\\\\/g, '\\\\\\\\').replace(/\"/g, '\\\\\"');\nconst safeSchema = schemaName.replace(/\\\\/g, '\\\\\\\\').replace(/\"/g, '\\\\\"');\nconst slug = workflowName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'pg-row-listener';\n\nconst sdkCode = `import { workflow, node, trigger, expr } from \"@n8n/workflow-sdk\";\n\nconst rowTrigger = trigger({\n  type: \"n8n-nodes-base.postgresTrigger\",\n  version: 1,\n  config: {\n    name: \"On row change\",\n    credentials: {\n      postgres: { id: \"PostgresStarter001\", name: \"Supabase Postgres (configure credential in n8n)\" },\n    },\n    parameters: {\n      triggerMode: \"createTrigger\",\n      schema: { __rl: true, mode: \"name\", value: \"${safeSchema}\" },\n      tableName: { __rl: true, mode: \"name\", value: \"${safeTable}\" },\n      firesOn: \"INSERT\",\n      additionalFields: {},\n      options: {},\n    },\n  },\n});\n\nconst logEvent = node({\n  type: \"n8n-nodes-base.set\",\n  version: 3.4,\n  config: {\n    name: \"Record event\",\n    parameters: {\n      mode: \"manual\",\n      assignments: {\n        assignments: [\n          { id: \"s\", name: \"source\", value: \"postgres-trigger\", type: \"string\" },\n          { id: \"p\", name: \"payload\", value: expr(\"{{ $json }}\"), type: \"object\" },\n        ],\n      },\n    },\n  },\n});\n\nexport default workflow(\"${slug}\", \"${safeName}\").add(rowTrigger).to(logEvent);`;\n\nreturn [{\n  json: {\n    workflowName,\n    tableName,\n    schemaName,\n    description,\n    sdkCode,\n    validateRpc: { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'validate_workflow', arguments: { code: sdkCode } } },\n    createRpc: { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'create_workflow_from_code', arguments: { code: sdkCode, name: workflowName, description } } },\n  },\n}];"
+      },
+      "id": "f6060606b",
+      "name": "Build SDK Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ]
+    },
+    {
+      "id": "f6060606v",
+      "name": "MCP Validate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        740,
+        300
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "N8NMcpBearer001",
+          "name": "n8n MCP Access Token"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:5678/mcp-server/http",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json, text/event-stream"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.validateRpc) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "text"
+            }
+          }
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function parseMcpSse(raw) {\n  const text = typeof raw === 'string' ? raw : String(raw ?? '');\n  const dataLine = text.split(/\r?\n/).find((line) => line.startsWith('data: '));\n  if (!dataLine) throw new Error('Invalid MCP validate response: ' + text.slice(0, 400));\n  const payload = JSON.parse(dataLine.slice(6));\n  if (payload.error) throw new Error(payload.error.message || JSON.stringify(payload.error));\n  const contentText = payload.result?.content?.[0]?.text;\n  return contentText ? JSON.parse(contentText) : (payload.result?.structuredContent || {});\n}\nconst http = $input.first().json;\nconst validation = parseMcpSse(http.body ?? http.data ?? '');\nif (!validation.valid) throw new Error('Workflow validation failed: ' + JSON.stringify(validation));\nconst built = $('Build SDK Payload').first().json;\nreturn [{ json: { ...built, validation } }];\n"
+      },
+      "id": "f6060606p",
+      "name": "Parse Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        300
+      ]
+    },
+    {
+      "id": "f6060606c",
+      "name": "MCP Create",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1220,
+        300
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "N8NMcpBearer001",
+          "name": "n8n MCP Access Token"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:5678/mcp-server/http",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json, text/event-stream"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.createRpc) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "text"
+            }
+          }
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function parseMcpSse(raw) {\n  const text = typeof raw === 'string' ? raw : String(raw ?? '');\n  const dataLine = text.split(/\r?\n/).find((line) => line.startsWith('data: '));\n  if (!dataLine) throw new Error('Invalid MCP create response: ' + text.slice(0, 400));\n  const payload = JSON.parse(dataLine.slice(6));\n  if (payload.error) throw new Error(payload.error.message || JSON.stringify(payload.error));\n  const contentText = payload.result?.content?.[0]?.text;\n  return contentText ? JSON.parse(contentText) : (payload.result?.structuredContent || {});\n}\nconst http = $input.first().json;\nconst created = parseMcpSse(http.body ?? http.data ?? '');\nreturn [{\n  json: {\n    success: true,\n    workflowId: created.workflowId,\n    name: created.name,\n    url: created.url,\n    nodeCount: created.nodeCount,\n    response: created.url ? ('Created Postgres trigger workflow. Open ' + created.url + ' and attach Postgres credentials if needed.') : JSON.stringify(created).slice(0, 700),\n  },\n}];"
+      },
+      "id": "f6060606f",
+      "name": "Format Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1460,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Build SDK Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build SDK Payload": {
+      "main": [
+        [
+          {
+            "node": "MCP Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Validate": {
+      "main": [
+        [
+          {
+            "node": "Parse Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Validate": {
+      "main": [
+        [
+          {
+            "node": "MCP Create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Create": {
+      "main": [
+        [
+          {
+            "node": "Format Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "6d143362-6d53-57bc-9c92-1c8e572f1425",
+  "tags": []
+}

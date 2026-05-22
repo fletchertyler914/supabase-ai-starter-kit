@@ -1,0 +1,474 @@
+{
+  "createdAt": "2026-05-22T12:00:00.000Z",
+  "updatedAt": "2026-05-22T12:00:00.000Z",
+  "id": "f1e2d3c4b5a6978890abcdef12345678",
+  "name": "Template - Document Ingest + Query",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "template-rag-ingest",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "a1000001-1001-4001-a001-000000000001",
+      "name": "Webhook Ingest",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        460,
+        180
+      ],
+      "webhookId": "f1e2d3c4b5a6978890abcdef12345678-ingest",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "template-rag-query",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "a1000002-1002-4002-a002-000000000002",
+      "name": "Webhook Query",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        460,
+        620
+      ],
+      "webhookId": "f1e2d3c4b5a6978890abcdef12345678-query",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const root = $input.first().json;\nconst body = root.body ?? root;\nconst content = String(body.content ?? '').trim();\nconst metadata = body.metadata ?? {};\nif (!content) {\n  throw new Error('Missing required field \"content\" in JSON body');\n}\nreturn [{ json: { content, metadata } }];"
+      },
+      "id": "b2000001-2001-4001-a001-000000000011",
+      "name": "Ingest Prepare",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        180
+      ],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/embeddings",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'nomic-embed-text', prompt: $json.content }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "b2000002-2002-4002-a002-000000000012",
+      "name": "Ingest Ollama Embed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        180
+      ],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const prep = $('Ingest Prepare').first().json;\nconst http = $input.first().json;\nconst status = http.statusCode ?? 0;\nlet embedding = [];\ntry {\n  const raw = http.body ?? http.data ?? '{}';\n  const body = typeof raw === 'string' ? JSON.parse(raw) : raw;\n  embedding = body.embedding ?? [];\n} catch (e) {\n  embedding = [];\n}\nif (!(Array.isArray(embedding) && embedding.length > 0)) {\n  throw new Error(`Ollama embed failed (${status}): invalid embedding`);\n}\nreturn [{\n  json: {\n    content: prep.content,\n    metadata: prep.metadata ?? {},\n    embedding,\n  },\n}];"
+      },
+      "id": "b2000003-2003-4003-a003-000000000013",
+      "name": "Ingest Build Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        180
+      ],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://kong:8000/rest/v1/documents",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzUxMDg2ODAwLCJleHAiOjE5MDg4NTMyMDB9.ZvEDn3ykbm4EzNHfU5SG7exKPD1HkK9w_760ZJa63OQ"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzUxMDg2ODAwLCJleHAiOjE5MDg4NTMyMDB9.ZvEDn3ykbm4EzNHfU5SG7exKPD1HkK9w_760ZJa63OQ"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ content: $json.content, embedding: $json.embedding, metadata: $json.metadata }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "b2000004-2004-4004-a004-000000000014",
+      "name": "Ingest Supabase Insert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        180
+      ],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const prep = $('Ingest Prepare').first().json;\nconst http = $input.first().json;\nconst status = http.statusCode ?? 0;\nlet rows = [];\ntry {\n  const raw = http.body ?? http.data ?? '[]';\n  const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;\n  rows = Array.isArray(parsed) ? parsed : [];\n} catch (e) {\n  rows = [];\n}\nconst row = rows[0];\nconst ok = status >= 200 && status < 300 && Boolean(row?.id);\nreturn [{\n  json: {\n    ok,\n    id: row?.id ?? null,\n    content: prep.content,\n  },\n}];"
+      },
+      "id": "b2000005-2005-4005-a005-000000000015",
+      "name": "Ingest Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        180
+      ],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const root = $input.first().json;\nconst body = root.body ?? root;\nconst question = String(body.question ?? '').trim();\nif (!question) {\n  throw new Error('Missing required field \"question\" in JSON body');\n}\nconst match_count = typeof body.match_count === 'number' ? body.match_count : 5;\nconst match_threshold = typeof body.match_threshold === 'number' ? body.match_threshold : 0.5;\nconst sessionId = body.sessionId != null ? String(body.sessionId) : `rag-${Date.now()}`;\nreturn [{\n  json: {\n    question,\n    match_count: Math.max(1, Math.floor(match_count)),\n    match_threshold,\n    sessionId,\n  },\n}];"
+      },
+      "id": "c3000001-3001-4001-a101-000000000021",
+      "name": "Query Prepare",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        620
+      ],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/embeddings",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'nomic-embed-text', prompt: $json.question }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "c3000002-3002-4002-a102-000000000022",
+      "name": "Query Ollama Embed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        620
+      ],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://kong:8000/rest/v1/rpc/match_documents",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzUxMDg2ODAwLCJleHAiOjE5MDg4NTMyMDB9.ZvEDn3ykbm4EzNHfU5SG7exKPD1HkK9w_760ZJa63OQ"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzUxMDg2ODAwLCJleHAiOjE5MDg4NTMyMDB9.ZvEDn3ykbm4EzNHfU5SG7exKPD1HkK9w_760ZJa63OQ"
+            },
+            {
+              "name": "Prefer",
+              "value": "count=exact"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => { let emb = []; try { const raw = $json.body ?? $json.data ?? '{}'; const b = typeof raw === 'string' ? JSON.parse(raw) : raw; emb = b.embedding ?? []; } catch (e) { emb = []; } const prep = $('Query Prepare').first().json; return JSON.stringify({ query_embedding: emb, match_count: prep.match_count, match_threshold: prep.match_threshold }); })() }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "c3000003-3003-4003-a103-000000000023",
+      "name": "Query Match Documents",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        620
+      ],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const prep = $('Query Prepare').first().json;\nconst http = $input.first().json;\nconst status = http.statusCode ?? 0;\nlet matches = [];\ntry {\n  const raw = http.body ?? http.data ?? '[]';\n  matches = typeof raw === 'string' ? JSON.parse(raw) : raw;\n  if (!Array.isArray(matches)) matches = [];\n} catch (e) {\n  matches = [];\n}\nconst contextParts = matches.map((m, i) => {\n  const sim = typeof m.similarity === 'number' ? m.similarity.toFixed(4) : String(m.similarity ?? '');\n  return `Source ${i + 1} (similarity ${sim}):\\n${m.content ?? ''}`;\n});\nconst context = contextParts.join('\\n\\n') || '(no matching documents found)';\nconst sources = matches.map((m) => ({ id: m.id, similarity: m.similarity, metadata: m.metadata }));\nreturn [{\n  json: {\n    question: prep.question,\n    sessionId: prep.sessionId,\n    rpcStatus: status,\n    context,\n    sources,\n  },\n}];"
+      },
+      "id": "c3000004-3004-4004-a104-000000000024",
+      "name": "Query Build Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        620
+      ],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'llama3.2:3b', stream: false, messages: [{ role: 'system', content: 'You answer using ONLY the CONTEXT below. If the answer is not in the context, say you do not have enough information.\\n\\nCONTEXT:\\n' + $json.context }, { role: 'user', content: $json.question }] }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "c3000005-3005-4005-a105-000000000025",
+      "name": "Query Ollama Chat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1560,
+        620
+      ],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const ctx = $('Query Build Context').first().json;\nconst http = $input.first().json;\nconst status = http.statusCode ?? 0;\nlet answer = '';\ntry {\n  const raw = http.body ?? http.data ?? '{}';\n  const body = typeof raw === 'string' ? JSON.parse(raw) : raw;\n  answer = String(body?.message?.content ?? '');\n} catch (e) {\n  answer = '';\n}\nconst ok = status >= 200 && status < 300 && answer.length > 0;\nreturn [{\n  json: {\n    ok,\n    answer,\n    sources: ctx.sources,\n    sessionId: ctx.sessionId,\n  },\n}];"
+      },
+      "id": "c3000006-3006-4006-a106-000000000026",
+      "name": "Query Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        620
+      ],
+      "credentials": {}
+    }
+  ],
+  "connections": {
+    "Webhook Ingest": {
+      "main": [
+        [
+          {
+            "node": "Ingest Prepare",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Query": {
+      "main": [
+        [
+          {
+            "node": "Query Prepare",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ingest Prepare": {
+      "main": [
+        [
+          {
+            "node": "Ingest Ollama Embed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ingest Ollama Embed": {
+      "main": [
+        [
+          {
+            "node": "Ingest Build Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ingest Build Row": {
+      "main": [
+        [
+          {
+            "node": "Ingest Supabase Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ingest Supabase Insert": {
+      "main": [
+        [
+          {
+            "node": "Ingest Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Prepare": {
+      "main": [
+        [
+          {
+            "node": "Query Ollama Embed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Ollama Embed": {
+      "main": [
+        [
+          {
+            "node": "Query Match Documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Match Documents": {
+      "main": [
+        [
+          {
+            "node": "Query Build Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Build Context": {
+      "main": [
+        [
+          {
+            "node": "Query Ollama Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Ollama Chat": {
+      "main": [
+        [
+          {
+            "node": "Query Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "5d07d245-8a5c-5873-a932-4f932ae9ac81",
+  "triggerCount": 0,
+  "tags": []
+}

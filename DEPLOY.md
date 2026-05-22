@@ -93,6 +93,24 @@ Before exposing this on the public internet, change every line in this checklist
 - [ ] Pin image tags. `latest` is fine locally; in prod pin to specific image digests.
 - [ ] Back up `volumes/db/data` and the n8n schema. A nightly `pg_dump` to S3 is sufficient for most users.
 
+## Backup and restore
+
+With the stack running (Postgres up), snapshot the logical database dump plus bundled app volumes:
+
+```bash
+npm run backup
+```
+
+This writes under `backups/<timestamp>/` as `pg_dumpall.sql` and `volumes.tgz` (`volumes/n8n` + `volumes/storage`).
+
+To restore onto a **stopped or idle** workspace you are willing to overwrite:
+
+```bash
+RESTORE_I_KNOW_THIS_IS_DESTRUCTIVE=1 npm run restore -- backups/<timestamp>
+```
+
+Then restart Compose so n8n/Storage reconnect cleanly. Inspect `scripts/backup.sh` and `scripts/restore.sh` before using in production — `pg_dumpall` restores are cluster-wide operations.
+
 ## What the kit doesn't include
 
 By design:
@@ -105,4 +123,4 @@ By design:
 
 - Want a guided VPS install? See [Coolify's Hetzner guide](https://coolify.io/docs/installation) and point it at this repo's `docker-compose.yml`.
 - Want a one-click public URL right now? Run `./scripts/tunnel.sh`.
-- Want the AI agent + workflow story without self-hosting? Use Supabase Cloud + n8n Cloud and import the templates from `n8n/demo-data/workflows/`.
+- Want the AI agent + workflow story without self-hosting? Use Supabase Cloud + n8n Cloud and import the workflows from `n8n/demo-data/workflows/templates/` and `n8n/demo-data/workflows/builder-helpers/`.

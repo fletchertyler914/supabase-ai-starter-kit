@@ -1,0 +1,230 @@
+{
+  "createdAt": "2026-05-22T12:00:00.000Z",
+  "updatedAt": "2026-05-22T12:00:00.000Z",
+  "id": "f5e6d7c8b9a0111224ef567890123d",
+  "name": "SK - Delete Workflow",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "workflowId",
+              "type": "string"
+            },
+            {
+              "name": "confirmToken",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "f5040404t",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        260,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const input = $input.first().json;\nconst workflowId = String(input.workflowId || '').trim();\nconst confirm = String(input.confirmToken || '').trim();\nif (!workflowId) throw new Error('workflowId is required.');\nif (confirm !== workflowId) {\n  throw new Error('confirmToken must exactly equal workflowId to archive this workflow.');\n}\nconst protectedIds = new Set([\"bKhNvmpDfT4mclXo\", \"c9a1b2c3d4e5f6789012345678ab\", \"d4e5f6a7b8c9012345678901234abcd\", \"f1e2d3c4b5a6978890abcdef12345678\", \"f8e9f0d1c2b3444557a8901234567ab\", \"e6f7a8b9c0d1e2f3a4b5c6d7e8f90123\", \"a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6\", \"b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7\", \"c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8\", \"f2e3d4c5b6a7988991bcdef23456789a\", \"f3e4d5c6b7a8999002cdef345678901b\", \"f4e5d6c7b8a9000113def456789012c\", \"f5e6d7c8b9a0111224ef567890123d\", \"f6e7d8c9b0a1222335f6789012345ef\", \"f7e8d9c0b1a2333446a7890123456af\", \"f9a0b1c2d3e4567890abcdef1234567a\"]);\nif (protectedIds.has(workflowId)) {\n  throw new Error('Refusing to archive protected seeded workflow ID: ' + workflowId);\n}\nreturn [{\n  json: {\n    workflowId,\n    validateRpc: {\n      jsonrpc: '2.0',\n      id: 1,\n      method: 'tools/call',\n      params: { name: 'get_workflow_details', arguments: { workflowId } },\n    },\n    archiveRpc: {\n      jsonrpc: '2.0',\n      id: 2,\n      method: 'tools/call',\n      params: { name: 'archive_workflow', arguments: { workflowId } },\n    },\n  },\n}];"
+      },
+      "id": "f5040404b",
+      "name": "Build SDK Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ]
+    },
+    {
+      "id": "f5040404v",
+      "name": "MCP Validate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        740,
+        300
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "N8NMcpBearer001",
+          "name": "n8n MCP Access Token"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:5678/mcp-server/http",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json, text/event-stream"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.validateRpc) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "text"
+            }
+          }
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function parseMcpSse(raw) {\n  const text = typeof raw === 'string' ? raw : String(raw ?? '');\n  const dataLine = text.split(/\r?\n/).find((line) => line.startsWith('data: '));\n  if (!dataLine) throw new Error('Invalid MCP response: ' + text.slice(0, 400));\n  const payload = JSON.parse(dataLine.slice(6));\n  if (payload.error) throw new Error(payload.error.message || JSON.stringify(payload.error));\n  const contentText = payload.result?.content?.[0]?.text;\n  if (contentText) {\n    try { return JSON.parse(contentText); } catch { return {}; }\n  }\n  return payload.result?.structuredContent || {};\n}\n\nconst sse = $('MCP Validate').first().json;\nconst gate = parseMcpSse(sse.body ?? sse.data ?? '');\nconst wf = gate.workflow;\nif (!wf || String(wf.id || '') !== String($('Build SDK Payload').first().json.workflowId)) {\n  throw new Error('Workflow not found or id mismatch.');\n}\nconst built = $('Build SDK Payload').first().json;\nreturn [{ json: { ...built } }];\n"
+      },
+      "id": "f5040404p",
+      "name": "Parse Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        300
+      ]
+    },
+    {
+      "id": "f5040404c",
+      "name": "MCP Create",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1220,
+        300
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "N8NMcpBearer001",
+          "name": "n8n MCP Access Token"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:5678/mcp-server/http",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json, text/event-stream"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.archiveRpc) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "text"
+            }
+          }
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function parseMcpSse(raw) {\n  const text = typeof raw === 'string' ? raw : String(raw ?? '');\n  const dataLine = text.split(/\r?\n/).find((line) => line.startsWith('data: '));\n  if (!dataLine) throw new Error('Invalid MCP response: ' + text.slice(0, 400));\n  const payload = JSON.parse(dataLine.slice(6));\n  if (payload.error) throw new Error(payload.error.message || JSON.stringify(payload.error));\n  const contentText = payload.result?.content?.[0]?.text;\n  if (contentText) {\n    try { return JSON.parse(contentText); } catch { return {}; }\n  }\n  return payload.result?.structuredContent || {};\n}\n\nconst raw = $('MCP Create').first().json.body ?? $('MCP Create').first().json.data ?? '';\nconst out = parseMcpSse(raw);\nconst id = $('Build SDK Payload').first().json.workflowId;\nreturn [{\n  json: {\n    success: out.archived !== false,\n    archived: !!out.archived,\n    workflowId: out.workflowId || id,\n    name: out.name || '',\n    response: out.archived\n      ? ('Archived workflow ' + String(out.workflowId || id))\n      : JSON.stringify(out).slice(0, 600),\n  },\n}];\n"
+      },
+      "id": "f5040404f",
+      "name": "Format Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1460,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Build SDK Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build SDK Payload": {
+      "main": [
+        [
+          {
+            "node": "MCP Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Validate": {
+      "main": [
+        [
+          {
+            "node": "Parse Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Validate": {
+      "main": [
+        [
+          {
+            "node": "MCP Create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Create": {
+      "main": [
+        [
+          {
+            "node": "Format Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "5c6239ac-b514-5f6b-ba23-2d8c49607b64",
+  "tags": []
+}

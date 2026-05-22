@@ -1,0 +1,67 @@
+{
+  "createdAt": "2026-05-22T12:00:00.000Z",
+  "updatedAt": "2026-05-22T12:00:00.000Z",
+  "id": "fa0b1c2d3e4567890123456789abcde0",
+  "name": "Template - Starter Kit Index",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "template-kit-index",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "a1010101-0101-4101-a101-010101010101",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ],
+      "webhookId": "fa0b1c2d3e4567890123456789abcde0",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const base = {\n  kit: 'supabase-ai-starter-kit',\n  version: 1,\n  urls: {\n    n8n: 'http://localhost:5678/',\n    supabaseStudio: 'http://localhost:8000/',\n    supabaseGateway: 'http://localhost:8000/',\n    ollama: 'http://localhost:11434/',\n  },\n  chatHub: {\n    personalAgents: [\n      {\n        name: 'Local Ollama Agent',\n        provider: 'ollama',\n        model: 'llama3.2:3b',\n        path: 'Chat Hub → Personal agents',\n      },\n    ],\n    workflowAgents: [\n      {\n        id: 'f8e9f0d1c2b3444557a8901234567ab',\n        name: 'Template - AI Starter Console',\n        path: 'Chat Hub → Workflow agents',\n      },\n      {\n        id: 'd4e5f6a7b8c9012345678901234abcd',\n        name: 'Template - NodeBot Builder',\n        path: 'Chat Hub → Workflow agents',\n      },\n    ],\n  },\n  templates: [\n    {\n      id: 'bKhNvmpDfT4mclXo',\n      name: 'Template - Local Ollama Chat',\n      trigger: 'chat',\n      webhook: null,\n    },\n    {\n      id: 'c9a1b2c3d4e5f6789012345678ab',\n      name: 'Template - Supabase API Health Check',\n      trigger: 'webhook',\n      webhook: 'POST http://localhost:5678/webhook/template-supabase-health',\n    },\n    {\n      id: 'f1e2d3c4b5a6978890abcdef12345678',\n      name: 'Template - Document Ingest + Query',\n      trigger: 'webhook',\n      webhooks: {\n        ingest: 'POST http://localhost:5678/webhook/template-rag-ingest',\n        query: 'POST http://localhost:5678/webhook/template-rag-query',\n      },\n    },\n    {\n      id: 'd4e5f6a7b8c9012345678901234abcd',\n      name: 'Template - NodeBot Builder',\n      trigger: 'chat',\n      webhook: null,\n    },\n    {\n      id: 'f8e9f0d1c2b3444557a8901234567ab',\n      name: 'Template - AI Starter Console',\n      trigger: 'chat',\n      webhook: null,\n    },\n    {\n      id: 'fa0b1c2d3e4567890123456789abcde0',\n      name: 'Template - Starter Kit Index',\n      trigger: 'webhook',\n      webhook: 'GET http://localhost:5678/webhook/template-kit-index',\n    },\n  ],\n  builderHelpers: [\n    { id: 'e6f7a8b9c0d1e2f3a4b5c6d7e8f90123', name: 'SK - Create Greeting Workflow' },\n    { id: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', name: 'SK - Create Webhook Workflow' },\n    { id: 'b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7', name: 'SK - Create Scheduled Workflow' },\n    { id: 'c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8', name: 'SK - List Workflows' },\n    { id: 'f2e3d4c5b6a7988991bcdef23456789a', name: 'SK - Create RAG Workflow' },\n    { id: 'f3e4d5c6b7a8999002cdef345678901b', name: 'SK - Update Workflow' },\n    { id: 'f4e5d6c7b8a9000113def456789012c', name: 'SK - Activate Deactivate Workflow' },\n    { id: 'f5e6d7c8b9a0111224ef567890123d', name: 'SK - Delete Workflow' },\n    { id: 'f6e7d8c9b0a1222335f6789012345ef', name: 'SK - Create Supabase Row Trigger Workflow' },\n    { id: 'f7e8d9c0b1a2333446a7890123456af', name: 'SK - Starter Kit Status' },\n    { id: 'f9a0b1c2d3e4567890abcdef1234567a', name: 'SK - Record AI Call' },\n  ],\n  quickStart: [\n    'npm run setup',\n    'Open n8n Chat Hub → Workflow agents → AI Starter Console',\n    'npm run test:rag for document search smoke test',\n    'npm run test:builder for MCP + NodeBot Builder readiness',\n  ],\n};\nreturn [{ json: base }];"
+      },
+      "id": "b2020202-0202-4202-b202-020202020202",
+      "name": "Build Index",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build Index",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "2527892b-5ca9-5f0d-9511-5496e092323a",
+  "triggerCount": 0,
+  "tags": []
+}

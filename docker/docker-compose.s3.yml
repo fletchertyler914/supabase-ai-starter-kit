@@ -34,7 +34,7 @@ services:
 
   storage:
     container_name: supabase-storage
-    image: supabase/storage-api:v1.11.13
+    image: supabase/storage-api:v1.48.26
     depends_on:
       db:
         # Disable this if you are using an external Postgres database
@@ -53,7 +53,7 @@ services:
           "--no-verbose",
           "--tries=1",
           "--spider",
-          "http://localhost:5000/status"
+          "http://127.0.0.1:5000/status"
         ]
       timeout: 5s
       interval: 5s
@@ -85,7 +85,7 @@ services:
 
   imgproxy:
     container_name: supabase-imgproxy
-    image: darthsim/imgproxy:v3.8.0
+    image: darthsim/imgproxy:v3.30.1
     healthcheck:
       test: [ "CMD", "imgproxy", "health" ]
       timeout: 5s
