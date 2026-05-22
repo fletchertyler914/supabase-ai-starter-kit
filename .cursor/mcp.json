@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "graphiti-memory": {
+      "url": "http://localhost:8000/sse"
+    }
+  }
+}

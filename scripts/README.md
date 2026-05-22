@@ -2,7 +2,60 @@
 
 This directory contains utility scripts for managing and testing the Supabase AI Starter Kit stack.
 
+| Script | npm wrapper | Purpose |
+| --- | --- | --- |
+| `setup.sh` | `npm run setup` | Interactive bootstrap: env, Docker, Ollama (host or container), model pulls, MCP token issuance, full test pass |
+| `start.sh` | `npm start` | Smart start; flags: `--cpu`, `--gpu-nvidia`, `--gpu-amd`, `--dev-email` |
+| `reset.sh` | `npm run reset` | Interactive teardown; `--clear-ollama` wipes models |
+| `tunnel.sh` | `npm run tunnel` | Install + run `cloudflared`, expose stack via Cloudflare Tunnel |
+| `health-check.sh` | `npm run health` / `test:health` | Container + endpoint health |
+| `verify-local.sh` | `npm run verify` | CI-like local verification pipeline |
+| `test-auth-complete.js` | `npm run test:auth` | Full signup/signin/confirm/logout flow through Kong |
+| `test-auth-direct.js` | `npm run test:auth:direct` | Same, bypassing Kong (debugging) |
+| `test-auth.js` | `npm run test:auth:basic` | Minimal auth check |
+| `test-database-integration.sh` | `npm run test:db` | DB structure, extensions, JWT, pgvector, roles, n8n schema |
+| `test-n8n-templates.sh` | `npm run test:templates` | Workflow import shape, activation, MCP enabled, helper presence, webhook smoke |
+| `test-n8n-builder-agent.sh` | `npm run test:builder` | MCP endpoint reachable + NodeBot Builder helper/MCP wiring intact |
+| `test-ollama-integration.sh` | `npm run test:ollama` | Real Ollama chat round-trip through the seeded Local Ollama Chat webhook |
+
 ## Available Scripts
+
+### 🚀 `setup.sh` — interactive bootstrap (start here)
+
+**Purpose:** One-command onboarding for new users.
+
+- Verifies Docker Desktop is running.
+- Detects Ollama (host vs containerized) and offers to start the containerized profile if needed.
+- Creates `.env` from `.env.example` when missing.
+- Pulls `OLLAMA_MODEL` / `OLLAMA_DEFAULT_MODELS` (chat) and `OLLAMA_BUILDER_MODEL` (NodeBot Builder).
+- Starts the full stack via `./scripts/start.sh`.
+- Once the first n8n owner account exists, issues an MCP access token, writes it to `.env` (`N8N_MCP_ACCESS_TOKEN`), re-encrypts the seeded `N8NMcpBearer001` credential with the new token, and restarts n8n so the credential is picked up.
+- Runs the full `npm test` suite end-to-end.
+- Opens n8n in your browser.
+
+**Usage:**
+
+```bash
+npm run setup
+```
+
+Re-run any time after creating the first n8n owner account, after changing `OLLAMA_BUILDER_MODEL`, or after rotating `N8N_MCP_ACCESS_TOKEN`.
+
+### 🌐 `tunnel.sh` — public URL via Cloudflare
+
+**Purpose:** Get an HTTPS public URL for the local stack without opening router ports.
+
+- Installs `cloudflared` if missing (Homebrew on macOS, apt/curl elsewhere).
+- Walks you through `cloudflared login`.
+- Starts a named tunnel that proxies `https://<your-subdomain>.<your-domain>` to `http://localhost:8000` (Kong) and `http://localhost:5678` (n8n).
+
+**Usage:**
+
+```bash
+npm run tunnel
+```
+
+See [`DEPLOY.md`](../DEPLOY.md) for the full deployment matrix.
 
 ### 🔐 Authentication Test Scripts
 
@@ -120,15 +173,52 @@ node scripts/test-auth.js
 - Stops all running containers
 - Cleans up Docker volumes and networks
 - Resets database to initial state
-- Clears persistent storage and logs
+- Clears persistent storage and logs (`volumes/db/data`, `volumes/storage`, `volumes/n8n`)
 - Provides fresh startup environment
 - Includes safety prompts and confirmation
+- `--clear-ollama` also removes the Ollama models volume (otherwise Ollama models are preserved)
 
 **Usage:**
 
 ```bash
 ./scripts/reset.sh [options]
+./scripts/reset.sh --clear-ollama   # nuke Ollama models too
 ```
+
+### 🧪 n8n template, builder, and Ollama tests
+
+#### `test-n8n-templates.sh`
+
+**Purpose:** End-to-end import + shape check for seeded n8n workflows.
+
+- Confirms `n8n-import` wrote the seed marker.
+- Asserts all 7 workflows are present in the n8n DB (3 user-facing templates + 4 builder helpers).
+- Verifies the workflows listed in `workflow-ids.activate` are active.
+- Asserts the NodeBot Builder agent JSON has exactly 4 `toolWorkflow` nodes wired to the helper IDs.
+- Hits `POST /webhook/template-supabase-health` and asserts the response shape.
+- Runs as part of `npm test`.
+
+#### `test-n8n-builder-agent.sh`
+
+**Purpose:** Confirm NodeBot Builder is ready to chat.
+
+- Reads `N8N_MCP_ACCESS_TOKEN` from `.env`; if missing, falls back to `n8n.user_api_keys` in Postgres.
+- Posts `tools/list` to `http://localhost:5678/mcp-server/http` with that token and asserts a 200 response that includes `create_workflow_from_code`.
+- Asserts the NodeBot Builder workflow (`d4e5f6a7b8c9012345678901234abcd`) is active in `n8n.workflow_entity`.
+- Asserts the `N8NMcpBearer001` credential exists in `n8n.credentials_entity` and is shared.
+- Exits 0 with a warning (not failure) if no MCP token exists yet — run `npm run setup` after creating the first n8n owner.
+
+#### `test-ollama-integration.sh`
+
+**Purpose:** Real LLM round-trip.
+
+1. Checks Ollama is reachable at `OLLAMA_HOST_URL` (defaults to `http://localhost:11434`).
+2. Ensures `OLLAMA_MODEL` is present locally (pulls if missing).
+3. Calls Ollama `/api/chat` directly with a real prompt and asserts a non-empty response.
+4. Verifies the `n8n` container can reach Ollama from inside Docker.
+5. Drives the seeded Local Ollama Chat template via its public webhook and asserts the streamed output is non-empty.
+
+Fails fast if Ollama isn't reachable — start Ollama first, or use the `--cpu` / `--gpu-*` profiles.
 
 ## When to Run These Scripts
 

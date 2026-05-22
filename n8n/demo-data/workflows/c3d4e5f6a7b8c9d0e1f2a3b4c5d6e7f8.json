@@ -1,0 +1,85 @@
+{
+  "createdAt": "2026-05-22T12:00:00.000Z",
+  "updatedAt": "2026-05-22T12:00:00.000Z",
+  "id": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8",
+  "name": "SK - List Workflows",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            { "name": "query", "type": "string" }
+          ]
+        }
+      },
+      "id": "1b1b1b1b-1b1b-4b1b-8b1b-1b1b1b1b1b1b",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const input = $input.first().json;\nconst query = String(input.query || '').trim();\nconst args = query ? { query, limit: 25 } : { limit: 25 };\nreturn [{\n  json: {\n    query,\n    rpc: { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'search_workflows', arguments: args } },\n  },\n}];"
+      },
+      "id": "2b2b2b2b-2b2b-4b2b-8b2b-2b2b2b2b2b2b",
+      "name": "Build Search RPC",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:5678/mcp-server/http",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Accept", "value": "application/json, text/event-stream" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.rpc) }}",
+        "options": { "response": { "response": { "fullResponse": true, "responseFormat": "text" } } }
+      },
+      "id": "3b3b3b3b-3b3b-4b3b-8b3b-3b3b3b3b3b3b",
+      "name": "MCP Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [740, 300],
+      "credentials": {
+        "httpBearerAuth": { "id": "N8NMcpBearer001", "name": "n8n MCP Access Token" }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function parseMcpSse(raw) {\n  const text = typeof raw === 'string' ? raw : String(raw ?? '');\n  const dataLine = text.split(/\\r?\\n/).find((l) => l.startsWith('data: '));\n  if (!dataLine) throw new Error('Invalid MCP search response: ' + text.slice(0, 500));\n  const payload = JSON.parse(dataLine.slice(6));\n  if (payload.error) throw new Error(payload.error.message || JSON.stringify(payload.error));\n  const t = payload.result?.content?.[0]?.text;\n  return t ? JSON.parse(t) : (payload.result?.structuredContent || {});\n}\nconst data = parseMcpSse($input.first().json.body ?? $input.first().json.data ?? '');\nconst items = Array.isArray(data) ? data : (data.data || data.workflows || data.results || data.items || []);\nconst query = ($('Build Search RPC').first().json.query || '').toLowerCase();\nconst filtered = query ? items.filter((w) => ((w.name || '') + ' ' + (w.description || '')).toLowerCase().includes(query)) : items;\nconst rows = filtered.map((w) => ({\n  id: w.id || w.workflowId || '',\n  name: w.name || '(unnamed)',\n  active: !!w.active,\n  url: w.url || (w.id ? `http://localhost:5678/workflow/${w.id}` : ''),\n  description: w.description || w.summary || '',\n}));\nconst lines = rows.map((r, i) => `${i + 1}. ${r.name}${r.active ? ' (active)' : ''} - ${r.url}${r.description ? `\\n   ${r.description}` : ''}`);\nconst response = rows.length\n  ? `Found ${rows.length} workflow${rows.length === 1 ? '' : 's'}:\\n${lines.join('\\n')}`\n  : (query ? `No workflows match \"${query}\".` : 'No workflows found.');\nreturn [{ json: { count: rows.length, workflows: rows, response } }];"
+      },
+      "id": "4b4b4b4b-4b4b-4b4b-8b4b-4b4b4b4b4b4b",
+      "name": "Format Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [980, 300]
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": { "main": [[{ "node": "Build Search RPC", "type": "main", "index": 0 }]] },
+    "Build Search RPC": { "main": [[{ "node": "MCP Search", "type": "main", "index": 0 }]] },
+    "MCP Search": { "main": [[{ "node": "Format Result", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "meta": { "templateCredsSetupCompleted": true },
+  "pinData": {},
+  "versionId": "c3d4e5f6-a7b8-4901-cdef-012345678abc",
+  "tags": []
+}

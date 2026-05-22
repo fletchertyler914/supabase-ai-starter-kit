@@ -14,8 +14,11 @@ This is a comprehensive **Infrastructure-as-Code Supabase AI Starter Kit** that 
 - **Full Supabase Backend**: Database, Auth, Realtime, Storage, Edge Functions
 - **Kong API Gateway**: Professional API management and routing
 - **n8n Workflow Automation**: AI workflow orchestration and integrations
+- **Preconfigured Chat Hub agents**: Personal agent (Local Ollama Agent) + Workflow agent (NodeBot Builder), wired to Ollama on first start
+- **Instance-level MCP**: n8n's workflow-builder MCP server enabled and gated by a bearer token managed by `scripts/setup.sh`
+- **Builder helper sub-workflows**: Four fast-path helpers so small local models can reliably author n8n workflows
 - **Development Email**: Inbucket for testing email flows
-- **Testing Infrastructure**: Node.js test scripts and health monitoring
+- **Testing Infrastructure**: Node.js + shell tests covering auth, DB, templates, MCP, and Ollama
 - **NPM Workflow**: Convenient script management for all operations
 - **Docker-First Approach**: No Supabase Studio dependency, everything via config
 
@@ -33,7 +36,10 @@ This is a comprehensive **Infrastructure-as-Code Supabase AI Starter Kit** that 
 
 ### **AI/Automation Services**
 - **`n8n`**: Workflow automation platform (port 5678)
-- **n8n-postgres**: Dedicated database for n8n workflows
+- **`n8n-import`**: One-shot container that imports `n8n/demo-data/workflows/*.json` and `credentials/*.json` once per fresh `volumes/n8n`
+- **`n8n-bootstrap`**: One-shot container that runs `n8n/demo-data/bootstrap.sql` on every start — idempotent SQL for `chat_hub_agents`, workflow/credential sharing, and MCP enablement
+- **n8n schema in Postgres**: Shared with Supabase Postgres in the same database; PostgREST excludes it via `PGRST_DB_SCHEMAS`
+- **Instance-level MCP**: HTTP JSON-RPC at `http://localhost:5678/mcp-server/http`, bearer-auth via `N8N_MCP_ACCESS_TOKEN`
 
 ### **Development Tools**
 - **Health Check Scripts**: Service monitoring (`scripts/`)
@@ -115,10 +121,23 @@ CREATE TABLE messages (
 
 ## **Initialization Process for New Users**
 
-### **Step 1: Environment Setup**
+### **Step 1: One-command bootstrap (recommended)**
 ```bash
 git clone <repository>
 cd supabase-ai-starter-kit
+npm run setup        # interactive wizard: env, Docker, Ollama, models, MCP token, tests
+```
+
+`scripts/setup.sh` is the canonical onboarding path. It:
+- Checks Docker is running and detects Ollama (host vs container).
+- Generates `.env` from `.env.example` if missing.
+- Pulls the chat model (`OLLAMA_MODEL` / `OLLAMA_DEFAULT_MODELS`) and the builder model (`OLLAMA_BUILDER_MODEL`).
+- Starts the full stack via `./scripts/start.sh`.
+- After the first n8n owner account exists, issues an MCP access token, writes it to `N8N_MCP_ACCESS_TOKEN`, and re-encrypts the seeded `N8NMcpBearer001` credential with the new token.
+- Runs `npm test` end-to-end.
+
+### **Step 1 (manual alternative): Environment Setup**
+```bash
 cp .env.example .env
 # Edit .env: regenerate JWT_SECRET / ANON_KEY / SERVICE_ROLE_KEY /
 # DASHBOARD_PASSWORD / SECRET_KEY_BASE / VAULT_ENC_KEY before any non-local use.
@@ -152,10 +171,13 @@ docker compose -f docker-compose.yml -f docker/docker-compose.dev.yml up -d
 
 ### **Step 3: Validation**
 ```bash
-npm run health        # ./scripts/health-check.sh
-npm test              # health + auth + db integration
-npm run test:auth     # node scripts/test-auth-complete.js
-npm run test:db       # ./scripts/test-database-integration.sh
+npm run health         # ./scripts/health-check.sh
+npm test               # health + auth + db + templates + ollama
+npm run test:auth      # node scripts/test-auth-complete.js
+npm run test:db        # ./scripts/test-database-integration.sh
+npm run test:templates # workflow import/shape/activation + webhook smoke
+npm run test:builder   # MCP endpoint reachable + NodeBot Builder tools wired
+npm run test:ollama    # full Ollama chat round-trip through n8n
 ```
 
 **Service URLs:**
@@ -183,10 +205,13 @@ npm run test:db       # ./scripts/test-database-integration.sh
 - **`npm run dev:full`**: base + dev + email + S3
 
 ### **Testing**
-- **`npm test`**: `health` → `test:auth` → `test:db`
-- **`npm run health`**: Service health + endpoint sanity
+- **`npm test`**: `test:health` → `test:auth` → `test:db` → `test:templates` → `test:ollama`
+- **`npm run health`** / **`test:health`**: Service health + endpoint sanity
 - **`npm run test:auth`** / **`test:auth:direct`** / **`test:auth:basic`**: Auth flows
 - **`npm run test:db`**: Schema/extension/pgvector/role checks
+- **`npm run test:templates`**: Workflow import shape, activation, MCP enabled, helper presence, webhook smoke
+- **`npm run test:builder`**: MCP endpoint reachable and NodeBot Builder helper + MCP tool wiring intact
+- **`npm run test:ollama`**: Full Ollama chat round-trip through the seeded Local Ollama Chat webhook
 
 ### **Utilities**
 - **`npm run db:connect`**: `psql` inside `supabase-db`
@@ -211,10 +236,12 @@ npm run test:db       # ./scripts/test-database-integration.sh
 - **Real-time subscriptions** for live features
 
 ### **n8n Workflow Patterns**
-- **AI Model Integration**: OpenAI, Anthropic, local models
+- **AI Model Integration**: OpenAI, Anthropic, local Ollama (default)
 - **Data Processing Pipelines**: ETL for AI training
 - **Webhook Handlers**: External service integrations
 - **Scheduled Jobs**: Batch processing, cleanup tasks
+- **Chat Hub agents**: Personal agents (`n8n.chat_hub_agents` table, configured in `n8n/demo-data/bootstrap.sql`) and Workflow agents (exported workflow JSON with Chat Trigger v1.4+ and AI Agent v3.1+)
+- **Builder helpers**: `toolWorkflow` nodes pointing at dedicated sub-workflows that wrap MCP `validate_workflow` + `create_workflow_from_code`. Pattern: `executeWorkflowTrigger` with named `workflowInputs` → `Code` node that builds SDK TypeScript → `httpRequest` to MCP `validate_workflow` → branch on validation → `httpRequest` to MCP `create_workflow_from_code` → `Code` node that formats the result. See the four `SK - Create *` / `SK - List *` workflows for canonical shape.
 
 ### **Testing Strategy**
 - **Node.js Scripts**: Authentication flow testing (`scripts/`)
@@ -245,10 +272,23 @@ HUGGING_FACE_API_KEY=hf_...
 
 ### **n8n Configuration**
 ```env
-# n8n settings
+# n8n UI basic auth
 N8N_BASIC_AUTH_ACTIVE=true
 N8N_BASIC_AUTH_USER=admin
 N8N_BASIC_AUTH_PASSWORD=password
+
+# Instance-level MCP (auto-managed by scripts/setup.sh)
+N8N_MCP_MANAGED_BY_ENV=true
+N8N_MCP_ACCESS_ENABLED=true
+N8N_MCP_ACCESS_TOKEN=        # Filled by setup.sh after first n8n owner exists
+```
+
+### **Ollama Configuration**
+```env
+OLLAMA_HOST=0.0.0.0
+OLLAMA_BASE_URL=http://ollama:11434
+OLLAMA_DEFAULT_MODELS=llama3.2:3b,nomic-embed-text
+OLLAMA_BUILDER_MODEL=llama3.2:3b    # Bump to qwen2.5:7b-instruct etc. for stronger MCP tool calling
 ```
 
 ## **Development Strategy**
@@ -380,15 +420,34 @@ docker exec -it supabase-db psql -U postgres
 ### **File Organization**
 ```
 project-root/
-├── scripts/                 # Lifecycle, health, and test scripts
-├── docker/                  # Compose overlays (dev, email, s3) + seed data.sql
+├── scripts/                 # Lifecycle, setup, tunnel, health, and test scripts
+│   ├── setup.sh             # Interactive bootstrap (env, Docker, Ollama, MCP token, tests)
+│   ├── start.sh             # Smart start with --cpu / --gpu-nvidia / --gpu-amd flags
+│   ├── reset.sh             # Interactive teardown
+│   ├── tunnel.sh            # Cloudflare Tunnel public URL
+│   ├── health-check.sh
+│   ├── test-auth-complete.js
+│   ├── test-database-integration.sh
+│   ├── test-n8n-templates.sh
+│   ├── test-n8n-builder-agent.sh
+│   ├── test-ollama-integration.sh
+│   └── verify-local.sh
+├── docker/                  # Compose overlays (dev, email, s3)
 ├── volumes/
 │   ├── api/kong.yml         # Kong declarative routes
-│   ├── db/*.sql             # Postgres init scripts (roles, JWT, vector, n8n, ...)
+│   ├── db/*.sql             # Postgres init scripts (roles, JWT, vector, n8n schema, ...)
 │   ├── functions/           # Deno Edge Functions (main dispatcher + samples)
 │   ├── logs/vector.yml      # Vector pipeline → Logflare
 │   └── pooler/pooler.exs    # Supavisor tenant bootstrap
-├── n8n/demo-data/           # Seeded n8n workflow + credentials
+├── n8n/demo-data/           # Seeded n8n workflows, credentials, SQL bootstrap
+│   ├── workflows/           # 3 user-facing templates + 4 builder helper sub-workflows
+│   ├── credentials/         # ollamaApi + httpBearerAuth (MCP), AES-256-CBC encrypted
+│   ├── bootstrap.sql        # idempotent SQL for chat_hub_agents + sharing
+│   ├── manifest.json
+│   ├── workflow-ids.activate
+│   └── import-templates.sh
+├── templates/README.md      # User-facing template catalog
+├── EXTENDING.md             # How to add workflows / agents / edge funcs (AI-readable)
 ├── docker-compose.yml       # Base stack
 ├── .env.example             # Required environment variables
 └── package.json             # npm script definitions (no node deps)

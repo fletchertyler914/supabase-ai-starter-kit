@@ -93,6 +93,9 @@ Named volumes (kept until `docker compose down -v`):
 - [ ] `npm run health`
 - [ ] `npm run test:db`
 - [ ] `npm run test:auth`
+- [ ] `npm run test:templates` — workflow shape, activation, MCP enablement, and helper presence
+- [ ] `npm run test:builder` — MCP endpoint and NodeBot Builder readiness
+- [ ] `npm run test:ollama` — end-to-end LLM round-trip through the seeded webhook
 - [ ] Confirm `volumes/logs/vector.yml` container-name matches still align with
       `docker-compose.yml` (`supabase-kong`, `supabase-auth`, `supabase-rest`,
       `realtime-dev.supabase-realtime`, `supabase-storage`,
@@ -100,8 +103,8 @@ Named volumes (kept until `docker compose down -v`):
 - [ ] Confirm `volumes/api/kong.yml` upstream hostnames (`auth`, `rest`,
       `realtime-dev.supabase-realtime`, `storage`, `functions`, `meta`,
       `analytics`, `studio`) still match service names in `docker-compose.yml`.
-- [ ] Re-run the n8n demo workflow ("Self Hosted Ollama Chat") to confirm
-      LangChain node compatibility hasn't regressed.
+- [ ] Re-run NodeBot Builder's four suggested prompts (greeting / webhook / scheduled / list) to confirm Chat Hub workflow agents + MCP + helper sub-workflows are intact.
+- [ ] Re-run the seeded Local Ollama Chat template to confirm LangChain node compatibility hasn't regressed.
 
 ## Known caveats
 
@@ -113,5 +116,11 @@ Named volumes (kept until `docker compose down -v`):
   defaults to `ollama:11434`. If you don't start an Ollama container, set
   `OLLAMA_HOST=host.docker.internal:11434` in `.env` and ensure Ollama runs on
   the host.
+- **n8n MCP token**: `N8N_MCP_ACCESS_TOKEN` is populated by `scripts/setup.sh`
+  after the first n8n owner account exists. Until then, NodeBot Builder will
+  report MCP auth errors. Re-run `npm run setup` after creating the owner.
+- **NodeBot Builder model**: `OLLAMA_BUILDER_MODEL` defaults to `llama3.2:3b`,
+  which is sufficient for the four fast-helper suggested prompts. For freeform
+  workflow building via raw MCP, bump to `qwen2.5:7b-instruct` or larger.
 - **Default secrets are placeholders**: Every key in `.env.example` (JWT, API
   keys, dashboard password, vault key) must be rotated before any non-local use.

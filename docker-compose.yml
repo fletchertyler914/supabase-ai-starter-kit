@@ -34,6 +34,10 @@ x-n8n: &service-n8n
     - N8N_HOST=${N8N_HOST:-localhost}
     - N8N_PORT=${N8N_PORT:-5678}
     - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
+    - N8N_MCP_MANAGED_BY_ENV=${N8N_MCP_MANAGED_BY_ENV:-true}
+    - N8N_MCP_ACCESS_ENABLED=${N8N_MCP_ACCESS_ENABLED:-true}
+    - N8N_MCP_ACCESS_TOKEN=${N8N_MCP_ACCESS_TOKEN:-}
+    - OLLAMA_BUILDER_MODEL=${OLLAMA_BUILDER_MODEL:-llama3.2:3b}
     - OLLAMA_HOST=${OLLAMA_HOST:-ollama:11434}
   env_file:
     - .env
@@ -65,7 +69,7 @@ x-init-ollama: &init-ollama
   entrypoint: /bin/sh
   environment:
     - OLLAMA_HOST=http://ollama:11434
-    - OLLAMA_DEFAULT_MODELS=${OLLAMA_DEFAULT_MODELS:-llama3.2:1b}
+    - OLLAMA_DEFAULT_MODELS=${OLLAMA_DEFAULT_MODELS:-llama3.2:3b}
   command:
     - '-c'
     - 'echo "Pulling models: $$OLLAMA_DEFAULT_MODELS"; IFS=","; for model in $$OLLAMA_DEFAULT_MODELS; do model=$$(echo "$$model" | sed "s/^[[:space:]]*//;s/[[:space:]]*$$//"); if [ -n "$$model" ]; then echo "Pulling: $$model"; ollama pull "$$model" || exit 1; fi; done; echo "All models pulled successfully"'
@@ -603,6 +607,30 @@ services:
       db:
         condition: service_healthy
 
+  n8n-bootstrap:
+    image: postgres:15-alpine
+    container_name: n8n-bootstrap
+    networks:
+      - supastar
+    environment:
+      PGHOST: ${POSTGRES_HOST}
+      PGPORT: ${POSTGRES_PORT}
+      PGDATABASE: ${POSTGRES_DB}
+      PGUSER: postgres
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./n8n/demo-data:/demo-data:ro
+    entrypoint:
+      - /bin/sh
+    command:
+      - -c
+      - 'psql -v ON_ERROR_STOP=1 -f /demo-data/bootstrap.sql'
+    depends_on:
+      n8n-import:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+
   n8n:
     <<: *service-n8n
     hostname: n8n
@@ -614,6 +642,8 @@ services:
       - ./volumes/n8n:/home/node/.n8n
     depends_on:
       n8n-import:
+        condition: service_completed_successfully
+      n8n-bootstrap:
         condition: service_completed_successfully
       db:
         condition: service_healthy

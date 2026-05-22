@@ -26,6 +26,8 @@ An open-source, Infrastructure-as-Code template that gives you a complete self-h
 ### 🧠 **AI Integration Platform**
 
 - **n8n Workflows** - Visual automation for AI pipelines and integrations
+- **Preconfigured Chat Hub agents** - Personal "Local Ollama Agent" + Workflow agent "NodeBot Builder" appear on first login, wired to local Ollama
+- **NodeBot Builder** - Describe a workflow in chat, it gets built. Uses 4 fast-helper sub-workflows + n8n's instance-level MCP under the hood
 - **Vector Search** - Semantic search and RAG (Retrieval Augmented Generation)
 - **AI Model Connectors** - Pre-configured for OpenAI, Anthropic, Ollama, and more
 - **Batch Processing** - Background jobs for training and large-scale operations
@@ -68,32 +70,24 @@ An open-source, Infrastructure-as-Code template that gives you a complete self-h
 - Intelligent content categorization
 - Semantic similarity and clustering
 
-## 🚀 Quick Start (60 seconds)
-
-### **1. Clone & Configure**
+## 🚀 Quick Start (one command)
 
 ```bash
 git clone https://github.com/fletchertyler914/supabase-ai-starter-kit.git
 cd supabase-ai-starter-kit
-
-# Copy environment template and configure
-cp .env.example .env
-# Edit .env with your API keys and settings
+npm run setup
 ```
 
-### **2. Start Everything**
+That runs an interactive wizard which checks Docker, detects Ollama (host or containerized), generates `.env`, pulls the chat model (`llama3.2:3b`, ~2 GB) and the NodeBot Builder model (`OLLAMA_BUILDER_MODEL`, `llama3.2:3b` by default), starts the full stack, seeds the Chat Hub agents + 7 n8n workflows (3 user-facing + 4 builder helpers), issues an MCP access token from the first n8n owner, runs the full validation suite, and opens n8n in your browser.
+
+See [QUICKSTART.md](./QUICKSTART.md) for the non-dev walkthrough, [EXTENDING.md](./EXTENDING.md) for adding workflows/integrations (designed to be followed by AI agents like Cursor/Claude too), and [DEPLOY.md](./DEPLOY.md) for honest deployment options (Cloudflare Tunnel, Coolify on a VPS, Fly.io, hybrid Cloud).
+
+### Manual start (if you prefer)
 
 ```bash
-# Recommended: npm scripts
-npm start                        # Production-like base stack
-npm run dev                      # Base stack + dev overlay (seed data, fresh DB)
-npm run dev:email                # Base stack + Inbucket dev email server
-npm run dev:full                 # Base + dev + email + S3 (MinIO) overlays
-npm run health                   # Validate everything works
-
-# Or use Docker directly
-docker compose up -d
-docker compose -f docker-compose.yml -f docker/docker-compose.dev.yml up -d
+cp .env.example .env
+npm run dev:full           # base + dev + email + S3 (MinIO)
+# or: npm start            # base stack only (host Ollama expected)
 ```
 
 > **Tip:** Without a `--cpu`/`--gpu-*` flag, the kit expects Ollama to already
@@ -110,6 +104,7 @@ npm test
 npm run health                   # System health check
 npm run test:auth                # Authentication flow
 npm run test:db                  # Database integration
+npm run test:builder             # n8n MCP workflow-builder smoke test
 
 # Access services
 npm run kong:open                # Kong API Gateway
@@ -207,17 +202,37 @@ ORDER BY embedding <=> '[0.1,0.2,...]'::vector
 LIMIT 5;
 ```
 
-### **n8n template library (v0)**
+### **Pre-configured AI in n8n**
 
-Two workflows ship in [`templates/README.md`](./templates/README.md) and import on first start:
+Out of the box you get:
 
-| Template | Trigger | Purpose |
-| -------- | ------- | ------- |
-| **Local Ollama Chat** | LangChain chat (non-public) | Dev co-pilot wired to local Ollama (`llama3.2:1b`) |
+- **Personal agent** (n8n Chat Hub → Personal agents → *Local Ollama Agent*) — plain chat with your local Ollama model. Pre-wired with `llama3.2:3b`, suggested prompts, and a directive system prompt so small models stop leaking instructions.
+- **Workflow agents** in Chat Hub:
+  - **NodeBot Builder** — describe a workflow in chat, watch it appear in n8n. Uses 4 fast-helper sub-workflows (greeting / webhook / scheduled / list) plus n8n's instance-level MCP for anything custom.
+- **Webhook templates** — auto-imported, auto-activated, ready to curl.
+- **Instance-level MCP** is enabled with a bearer token auto-issued by `npm run setup` after your first n8n owner account exists.
+
+User-facing templates ([`templates/README.md`](./templates/README.md)):
+
+| Template | Trigger | What it does |
+| -------- | ------- | ------------ |
+| **Local Ollama Chat** | LangChain chat (public webhook) | Streaming chat with your local Ollama model |
 | **Supabase API Health Check** | `POST /webhook/template-supabase-health` | Verifies Kong/Auth health from inside Docker |
+| **NodeBot Builder** | Chat Hub workflow agent | Conversationally builds, lists, and manages n8n workflows |
+
+Builder helper sub-workflows (called internally by NodeBot Builder, not for direct use):
+
+| Helper | Pattern |
+| --- | --- |
+| `SK - Create Greeting Workflow` | Manual Trigger + Set greeting |
+| `SK - Create Webhook Workflow` | POST webhook + normalized JSON response |
+| `SK - Create Scheduled Workflow` | Schedule Trigger (cron) + Set log |
+| `SK - List Workflows` | Formatted wrapper around MCP `search_workflows` |
 
 ```bash
-npm run test:templates          # import + webhook smoke test
+npm run test:templates          # import + workflow shape checks + webhook smoke test
+npm run test:builder            # MCP + NodeBot Builder readiness
+npm run test:ollama             # end-to-end LLM chat through the n8n webhook
 curl -s -X POST http://localhost:5678/webhook/template-supabase-health
 ```
 
@@ -261,7 +276,9 @@ docker compose logs -f [service-name]
 ### **NPM Scripts (Recommended)**
 
 ```bash
-# Lifecycle
+# Setup / lifecycle
+npm run setup                    # ./scripts/setup.sh (interactive wizard)
+npm run tunnel                   # ./scripts/tunnel.sh (Cloudflare Tunnel public URL)
 npm start                        # ./scripts/start.sh (smart starter with flags)
 npm stop                         # docker compose down
 npm run restart                  # docker compose restart
@@ -274,8 +291,10 @@ npm run dev:s3                   # base + MinIO (S3-compatible storage)
 npm run dev:full                 # base + dev + email + S3
 
 # Testing
-npm test                         # health + auth + db + n8n templates
-npm run test:templates           # template import + webhook smoke test
+npm test                         # health + auth + db + templates + ollama
+npm run test:templates           # template import + builder shape + webhook smoke test
+npm run test:builder             # n8n MCP + NodeBot Builder readiness
+npm run test:ollama              # n8n -> Ollama chat webhook end-to-end
 npm run health                   # ./scripts/health-check.sh
 npm run test:auth                # node scripts/test-auth-complete.js
 npm run test:db                  # ./scripts/test-database-integration.sh
@@ -347,7 +366,13 @@ N8N_BASIC_AUTH_PASSWORD=changeme
 # Ollama (local AI)
 OLLAMA_HOST=0.0.0.0
 OLLAMA_BASE_URL=http://ollama:11434
-OLLAMA_DEFAULT_MODELS=llama3.2:1b,nomic-embed-text
+OLLAMA_DEFAULT_MODELS=llama3.2:3b,nomic-embed-text
+OLLAMA_BUILDER_MODEL=llama3.2:3b      # Bump to qwen2.5:7b-instruct etc. for stronger MCP tool calling
+
+# n8n instance-level MCP (auto-managed by npm run setup)
+N8N_MCP_MANAGED_BY_ENV=true
+N8N_MCP_ACCESS_ENABLED=true
+N8N_MCP_ACCESS_TOKEN=                 # Filled by scripts/setup.sh after first n8n owner exists
 ```
 
 > Generate strong JWT keys with the [Supabase self-hosting guide](https://supabase.com/docs/guides/self-hosting/docker#generate-api-keys).
@@ -482,13 +507,14 @@ npm start
 
 ### **In-repo Reference**
 
-- [**Scripts README**](./scripts/README.md) - Testing, health, reset utilities
+- [**Scripts README**](./scripts/README.md) - Setup, tunnel, testing, health, reset utilities
 - [**Database Bootstrap**](./volumes/db/) - PostgreSQL init scripts, roles, JWT, pgvector
 - [**Kong Routing**](./volumes/api/kong.yml) - Declarative API gateway routes
 - [**Edge Functions**](./volumes/functions/) - Deno serverless function runtime
-- [**Template library**](./templates/README.md) - Two n8n workflows + test commands
-- [**n8n seed data**](./n8n/demo-data/) - Workflow exports + import manifest
+- [**Template library**](./templates/README.md) - User-facing templates + builder sub-workflows + test commands
+- [**n8n seed data**](./n8n/demo-data/) - Workflow exports, import manifest, MCP credential, bootstrap SQL
 - [**Docker Overlays**](./docker/) - Dev, email (Inbucket), and S3 (MinIO) variants
+- [**Extending guide**](./EXTENDING.md) - Add workflows, agents, edge functions; readable by AI coding agents
 
 ### **Upstream Documentation**
 

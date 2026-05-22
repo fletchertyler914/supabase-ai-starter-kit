@@ -1,0 +1,127 @@
+{
+  "createdAt": "2026-05-22T12:00:00.000Z",
+  "updatedAt": "2026-05-22T12:00:00.000Z",
+  "id": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7",
+  "name": "SK - Create Scheduled Workflow",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            { "name": "workflowName", "type": "string" },
+            { "name": "cronExpression", "type": "string" },
+            { "name": "message", "type": "string" }
+          ]
+        }
+      },
+      "id": "1a1a1a1a-1a1a-4a1a-8a1a-1a1a1a1a1a1a",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const input = $input.first().json;\nconst workflowName = String(input.workflowName || 'Scheduled Job');\nconst cronExpression = String(input.cronExpression || '0 9 * * *');\nconst message = String(input.message || 'Scheduled run from NodeBot.');\n\nconst safeName = workflowName.replace(/\\\\/g, '\\\\\\\\').replace(/\"/g, '\\\\\"');\nconst safeCron = cronExpression.replace(/\\\\/g, '\\\\\\\\').replace(/\"/g, '\\\\\"');\nconst safeMessage = message.replace(/\\\\/g, '\\\\\\\\').replace(/\"/g, '\\\\\"');\nconst slug = workflowName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'scheduled-job';\n\nconst sdkCode = `import { workflow, node, trigger, expr } from \"@n8n/workflow-sdk\";\n\nconst scheduleTrigger = trigger({\n  type: \"n8n-nodes-base.scheduleTrigger\",\n  version: 1.2,\n  config: {\n    name: \"Schedule\",\n    parameters: {\n      rule: {\n        interval: [\n          { field: \"cronExpression\", expression: \"${safeCron}\" },\n        ],\n      },\n    },\n  },\n});\n\nconst logRun = node({\n  type: \"n8n-nodes-base.set\",\n  version: 3.4,\n  config: {\n    name: \"Log Run\",\n    parameters: {\n      mode: \"manual\",\n      assignments: {\n        assignments: [\n          { id: \"message\", name: \"message\", value: \"${safeMessage}\", type: \"string\" },\n          { id: \"ranAt\", name: \"ranAt\", value: expr(\"{{ $now.toISO() }}\"), type: \"string\" },\n        ],\n      },\n    },\n  },\n});\n\nexport default workflow(\"${slug}\", \"${safeName}\")\n  .add(scheduleTrigger)\n  .to(logRun);`;\n\nreturn [{\n  json: {\n    workflowName,\n    cronExpression,\n    message,\n    sdkCode,\n    validateRpc: { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'validate_workflow', arguments: { code: sdkCode } } },\n    createRpc: { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'create_workflow_from_code', arguments: { code: sdkCode, name: workflowName, description: `Scheduled workflow running on cron: ${cronExpression}` } } },\n  },\n}];"
+      },
+      "id": "2a2a2a2a-2a2a-4a2a-8a2a-2a2a2a2a2a2a",
+      "name": "Build SDK Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:5678/mcp-server/http",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Accept", "value": "application/json, text/event-stream" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.validateRpc) }}",
+        "options": { "response": { "response": { "fullResponse": true, "responseFormat": "text" } } }
+      },
+      "id": "3a3a3a3a-3a3a-4a3a-8a3a-3a3a3a3a3a3a",
+      "name": "MCP Validate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [740, 300],
+      "credentials": {
+        "httpBearerAuth": { "id": "N8NMcpBearer001", "name": "n8n MCP Access Token" }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function parseMcpSse(raw) {\n  const text = typeof raw === 'string' ? raw : String(raw ?? '');\n  const dataLine = text.split(/\\r?\\n/).find((l) => l.startsWith('data: '));\n  if (!dataLine) throw new Error('Invalid MCP validate response: ' + text.slice(0, 500));\n  const payload = JSON.parse(dataLine.slice(6));\n  if (payload.error) throw new Error(payload.error.message || JSON.stringify(payload.error));\n  const t = payload.result?.content?.[0]?.text;\n  return t ? JSON.parse(t) : (payload.result?.structuredContent || {});\n}\nconst v = parseMcpSse($input.first().json.body ?? $input.first().json.data ?? '');\nif (!v.valid) throw new Error('Workflow validation failed: ' + JSON.stringify(v));\nconst built = $('Build SDK Payload').first().json;\nreturn [{ json: { ...built, validation: v } }];"
+      },
+      "id": "4a4a4a4a-4a4a-4a4a-8a4a-4a4a4a4a4a4a",
+      "name": "Parse Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [980, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:5678/mcp-server/http",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Accept", "value": "application/json, text/event-stream" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.createRpc) }}",
+        "options": { "response": { "response": { "fullResponse": true, "responseFormat": "text" } } }
+      },
+      "id": "5a5a5a5a-5a5a-4a5a-8a5a-5a5a5a5a5a5a",
+      "name": "MCP Create",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1220, 300],
+      "credentials": {
+        "httpBearerAuth": { "id": "N8NMcpBearer001", "name": "n8n MCP Access Token" }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function parseMcpSse(raw) {\n  const text = typeof raw === 'string' ? raw : String(raw ?? '');\n  const dataLine = text.split(/\\r?\\n/).find((l) => l.startsWith('data: '));\n  if (!dataLine) throw new Error('Invalid MCP create response: ' + text.slice(0, 500));\n  const payload = JSON.parse(dataLine.slice(6));\n  if (payload.error) throw new Error(payload.error.message || JSON.stringify(payload.error));\n  const t = payload.result?.content?.[0]?.text;\n  return t ? JSON.parse(t) : (payload.result?.structuredContent || {});\n}\nconst created = parseMcpSse($input.first().json.body ?? $input.first().json.data ?? '');\nconst built = $('Build SDK Payload').first().json;\nreturn [{\n  json: {\n    success: true,\n    workflowId: created.workflowId,\n    name: created.name,\n    url: created.url,\n    nodeCount: created.nodeCount,\n    cronExpression: built.cronExpression,\n    response: `Created scheduled workflow \"${created.name}\" (cron: ${built.cronExpression}). Open ${created.url} and activate it to start running on schedule.`,\n  },\n}];"
+      },
+      "id": "6a6a6a6a-6a6a-4a6a-8a6a-6a6a6a6a6a6a",
+      "name": "Format Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1460, 300]
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": { "main": [[{ "node": "Build SDK Payload", "type": "main", "index": 0 }]] },
+    "Build SDK Payload": { "main": [[{ "node": "MCP Validate", "type": "main", "index": 0 }]] },
+    "MCP Validate": { "main": [[{ "node": "Parse Validate", "type": "main", "index": 0 }]] },
+    "Parse Validate": { "main": [[{ "node": "MCP Create", "type": "main", "index": 0 }]] },
+    "MCP Create": { "main": [[{ "node": "Format Result", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "meta": { "templateCredsSetupCompleted": true },
+  "pinData": {},
+  "versionId": "b2c3d4e5-f6a7-4890-bcde-f01234567890",
+  "tags": []
+}
