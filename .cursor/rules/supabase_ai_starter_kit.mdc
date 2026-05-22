@@ -267,6 +267,8 @@ ENABLE_PHONE_AUTOCONFIRM=false
 ```env
 # Add AI service keys
 OPENAI_API_KEY=sk-...
+OPENAI_API_BASE_URL=https://api.openai.com/v1
+OPENAI_CHAT_MODEL=gpt-4o-mini
 ANTHROPIC_API_KEY=sk-ant-...
 HUGGING_FACE_API_KEY=hf_...
 ```
@@ -290,6 +292,7 @@ OLLAMA_HOST=0.0.0.0
 OLLAMA_BASE_URL=http://ollama:11434
 OLLAMA_DEFAULT_MODELS=llama3.2:3b,nomic-embed-text
 OLLAMA_BUILDER_MODEL=llama3.2:3b    # Bump to qwen2.5:7b-instruct etc. for stronger MCP tool calling
+OLLAMA_CHAT_FALLBACK_PROVIDER=      # Optional: openai
 ```
 
 ## **Development Strategy**

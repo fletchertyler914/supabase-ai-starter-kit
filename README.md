@@ -2,76 +2,27 @@
 
 > **Self-hosted Supabase + Kong + n8n + pgvector + Ollama, all in one Docker stack.**
 
-An open-source, Infrastructure-as-Code template that gives you a complete self-hosted Supabase backend plus n8n workflow automation, ready for AI/RAG/LLM workloads on day one.
+Build local-first AI apps without stitching together auth, vector search, workflow automation, model hosting, edge functions, and deployment scripts from scratch. This kit gives you a batteries-included Supabase + n8n + Ollama stack that runs locally, ships as Docker Compose, and is designed to become a real product foundation instead of a throwaway demo.
 
 ![Supabase](https://img.shields.io/badge/supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
 ![Kong](https://img.shields.io/badge/kong-003459?style=for-the-badge&logo=kong&logoColor=white)
 ![n8n](https://img.shields.io/badge/n8n-EA4B71?style=for-the-badge&logo=n8n&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/postgresql-336791?style=for-the-badge&logo=postgresql&logoColor=white)
+[![CI](https://github.com/fletchertyler914/supabase-ai-starter-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/fletchertyler914/supabase-ai-starter-kit/actions/workflows/ci.yml)
+[![Open in Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/fletchertyler914/supabase-ai-starter-kit)
 
-**Infrastructure-as-Code. Everything in Docker. No external dependencies.**
+**Infrastructure-as-Code. Everything in Docker. No required SaaS dependencies.**
 
-## 🚀 What You Get
+## Why This Exists
 
-### ⚡ **Complete AI-Ready Backend**
+Most AI starter kits cover one layer: a frontend chat UI, an LLM SDK example, or a vector database demo. This repo is the local-first application stack around those pieces:
 
-- **PostgreSQL + pgvector** - Vector database for embeddings and semantic search
-- **Supabase Auth** - Email/password authentication with email confirmation
-- **Kong API Gateway** - Professional API management and routing
-- **Real-time Features** - WebSocket subscriptions for live AI interactions
-- **Edge Functions** - Serverless TypeScript functions for AI processing
-- **File Storage** - Supabase Storage for AI training data and media
+- **Own the data path**: Supabase, Postgres, pgvector, n8n, and Ollama can all run on your machine or your VPS.
+- **Start from working workflows**: Chat Hub agents, RAG webhooks, builder helpers, status checks, and tests are seeded automatically.
+- **Scale from local to deployable**: the same Compose-first structure supports local dev, Cloudflare Tunnel demos, and VPS/Coolify deployments.
 
-### 🧠 **AI Integration Platform**
-
-- **n8n Workflows** - Visual automation for AI pipelines and integrations
-- **Preconfigured Chat Hub agents** - Personal "Local Ollama Agent" + Workflow agents "AI Starter Console" and "NodeBot Builder"
-- **NodeBot Builder** - Describe a workflow in chat, it gets built. Uses 9 fast-helper sub-workflows + n8n's instance-level MCP under the hood
-- **RAG template** - Document ingest + semantic query webhooks backed by pgvector (`nomic-embed-text` embeddings)
-- **Vector Search** - Semantic search and RAG (Retrieval Augmented Generation)
-- **AI Model Connectors** - Pre-configured for OpenAI, Anthropic, Ollama, and more
-- **Batch Processing** - Background jobs for training and large-scale operations
-- **Real-time AI** - Streaming responses and live AI interactions
-
-### 🛠️ **Developer Experience**
-
-- **Built-in Test Suite** - Node.js auth flow tests + shell health/db integration tests
-- **Development Email** - Inbucket for testing auth flows without external SMTP
-- **Optional Local LLMs** - Run Ollama on CPU/NVIDIA/AMD via Docker profiles
-- **Infrastructure-as-Code** - Everything configured via Docker and environment files
-
-## 🎯 What You Can Build
-
-### 🤖 **AI Chatbots & Assistants**
-
-- Customer support bots with company knowledge
-- Technical documentation assistants
-- Multi-user chat applications with context
-- Real-time conversational AI with memory
-
-### 📊 **AI Analytics & Insights**
-
-- Intelligent data processing pipelines
-- Semantic search across documents and data
-- Real-time AI-powered dashboards
-- Automated report generation and insights
-
-### 🎨 **AI Content Generation**
-
-- Text, image, and media generation workflows
-- Content approval and review systems
-- Template-based generation with customization
-- Multi-step creative pipelines
-
-### 🔍 **AI-Powered Search & Discovery**
-
-- Vector search across any content type
-- Personalized recommendation engines
-- Intelligent content categorization
-- Semantic similarity and clustering
-
-## 🚀 Quick Start (one command)
+## Quick Demo Path
 
 ```bash
 git clone https://github.com/fletchertyler914/supabase-ai-starter-kit.git
@@ -79,9 +30,81 @@ cd supabase-ai-starter-kit
 npm run setup
 ```
 
+Then open [n8n](http://localhost:5678), go to **Chat → Workflow agents → AI Starter Console**, and ask what is available. Try **NodeBot Builder** next:
+
+```text
+Create a webhook workflow at path lead-capture that accepts JSON and returns a normalized response.
+```
+
+You should get a real n8n workflow URL back in chat. That is the intended "wow" moment: describe the automation, let the local agent build it, then inspect and extend it in n8n.
+
+## Architecture
+
+```mermaid
+flowchart LR
+  user[Browser / API Client] --> kong[Kong API Gateway :8000]
+  user --> n8n[n8n Chat Hub + Workflows :5678]
+
+  kong --> auth[Supabase Auth]
+  kong --> rest[PostgREST API]
+  kong --> realtime[Realtime]
+  kong --> storage[Storage]
+  kong --> functions[Edge Functions]
+
+  auth --> db[(Postgres + pgvector)]
+  rest --> db
+  realtime --> db
+  storage --> db
+  functions --> db
+  functions --> ollama[Ollama Models :11434]
+
+  n8n --> db
+  n8n --> ollama
+  n8n --> mcp[n8n MCP Tools]
+  n8n --> templates[Seeded Workflow Templates]
+
+  subgraph Seeded AI UX
+    console[AI Starter Console]
+    builder[NodeBot Builder]
+    rag[RAG Ingest + Query]
+  end
+
+  templates --> console
+  templates --> builder
+  templates --> rag
+```
+
+## What You Get
+
+### Complete AI-Ready Backend
+
+- **PostgreSQL + pgvector** - Vector database for embeddings and semantic search.
+- **Supabase Auth** - Email/password authentication with local email testing.
+- **Kong API Gateway** - API routing for Supabase services.
+- **Realtime, Storage, Edge Functions** - The core Supabase surface for application backends.
+- **n8n + MCP** - Visual automation, Chat Hub agents, and workflow-building tools.
+- **Ollama** - Optional local model runtime for chat, embeddings, and builder agents.
+
+### Seeded AI Workflows
+
+- **AI Starter Console** - A guided Chat Hub workflow agent for touring the stack.
+- **NodeBot Builder** - Describe a workflow in chat and let n8n build it using 11 focused helper sub-workflows plus MCP.
+- **RAG template** - Document ingest and semantic query webhooks backed by pgvector and `nomic-embed-text`.
+- **Starter Kit Index** - A JSON catalog endpoint for templates, helper workflows, URLs, and next steps.
+- **AI call telemetry** - `ai_calls` table, daily stats view, and a seeded helper workflow for recording model usage.
+- **Validation suite** - Tests for health, auth, database integration, workflow JSON, RAG, templates, builder readiness, and Ollama.
+
+## Quick Start (one command)
+
+```bash
+npm run setup
+```
+
 That runs an interactive wizard which checks Docker, detects Ollama (host or containerized), generates `.env`, pulls the chat model (`llama3.2:3b`, ~2 GB) and the NodeBot Builder model (`OLLAMA_BUILDER_MODEL`, `llama3.2:3b` by default), starts the full stack, seeds the Chat Hub agents + 17 n8n workflows (6 user-facing templates + 11 builder helpers), issues an MCP access token from the first n8n owner, runs the full validation suite, and opens n8n in your browser.
 
 See [QUICKSTART.md](./QUICKSTART.md) for the non-dev walkthrough, [EXTENDING.md](./EXTENDING.md) for adding workflows/integrations (designed to be followed by AI agents like Cursor/Claude too), and [DEPLOY.md](./DEPLOY.md) for honest deployment options (Cloudflare Tunnel, Coolify on a VPS, Fly.io, hybrid Cloud).
+
+Preparing a public launch? Use [`docs/public-launch-checklist.md`](./docs/public-launch-checklist.md) for GitHub settings, demo asset notes, release hygiene, and the next highest-impact features.
 
 ### Manual start (if you prefer)
 
@@ -95,7 +118,7 @@ npm run dev:full           # base + dev + email + S3 (MinIO)
 > be running on the host (`http://host.docker.internal:11434`). To run Ollama
 > in Docker instead, use `./scripts/start.sh --cpu` / `--gpu-nvidia` / `--gpu-amd`.
 
-### **3. Validate Setup**
+### Validate Setup
 
 ```bash
 # Test everything (recommended)
@@ -209,7 +232,8 @@ Out of the box you get:
 
 - **Personal agent** (n8n Chat Hub → Personal agents → *Local Ollama Agent*) — plain chat with your local Ollama model. Pre-wired with `llama3.2:3b`, suggested prompts, and a directive system prompt so small models stop leaking instructions.
 - **Workflow agents** in Chat Hub:
-  - **NodeBot Builder** — describe a workflow in chat, watch it appear in n8n. Uses 4 fast-helper sub-workflows (greeting / webhook / scheduled / list) plus n8n's instance-level MCP for anything custom.
+  - **AI Starter Console** — guided tour, status checks, and pointers to the best template for your use case.
+  - **NodeBot Builder** — describe a workflow in chat, watch it appear in n8n. Uses 11 fast-helper sub-workflows plus n8n's instance-level MCP for anything custom.
 - **Webhook templates** — auto-imported, auto-activated, ready to curl.
 - **Instance-level MCP** is enabled with a bearer token auto-issued by `npm run setup` after your first n8n owner account exists.
 
@@ -379,6 +403,10 @@ OLLAMA_HOST=0.0.0.0
 OLLAMA_BASE_URL=http://ollama:11434
 OLLAMA_DEFAULT_MODELS=llama3.2:3b,nomic-embed-text
 OLLAMA_BUILDER_MODEL=llama3.2:3b      # Bump to qwen2.5:7b-instruct etc. for stronger MCP tool calling
+OLLAMA_CHAT_FALLBACK_PROVIDER=        # Optional: openai
+OPENAI_API_KEY=
+OPENAI_API_BASE_URL=https://api.openai.com/v1
+OPENAI_CHAT_MODEL=gpt-4o-mini
 
 # n8n instance-level MCP (auto-managed by npm run setup)
 N8N_MCP_MANAGED_BY_ENV=true
@@ -399,6 +427,11 @@ ANTHROPIC_API_KEY=sk-ant-...
 PERPLEXITY_API_KEY=pplx-...
 GOOGLE_API_KEY=AIza...
 ```
+
+By default `functions/ollama-chat` is local-only. To make demos more resilient,
+set `OLLAMA_CHAT_FALLBACK_PROVIDER=openai` and provide `OPENAI_API_KEY`; the
+function will try local Ollama first and fall back only when Ollama is
+unreachable or returns a server error.
 
 ## 🔐 Security & Production Features
 
@@ -609,14 +642,15 @@ docker network MinIO is still reachable at `http://minio:9000`.
 
 ## 🤝 Contributing
 
-Pull requests and issues are welcome. Please open an issue first to discuss
-substantial changes (new services, breaking config changes, image bumps).
+Pull requests and issues are welcome. Start with [CONTRIBUTING.md](./CONTRIBUTING.md), use the GitHub issue templates, and run the validation commands listed there before opening a PR.
+
+For security-sensitive reports, see [SECURITY.md](./SECURITY.md). For release notes, see [CHANGELOG.md](./CHANGELOG.md).
 
 ## 📄 License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
 
-## 🌟 Why This Exists
+## 🌟 The Goal
 
 AI development shouldn't start with weeks of infrastructure setup. This starter kit eliminates the typical 2-4 weeks of backend work so you can focus on building intelligent features, not configuring services.
 

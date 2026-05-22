@@ -106,7 +106,7 @@ That's a real LLM running on your machine.
 
 ### Build workflows by chatting (NodeBot Builder)
 
-Same Chat Hub, **Workflow agents** tab → **NodeBot Builder**. The four suggested prompts are the four guaranteed-to-work fast paths:
+Same Chat Hub, **Workflow agents** tab → **NodeBot Builder**. Start with one of the fast paths that the helper sub-workflows handle directly:
 
 | Prompt | What it does |
 | --- | --- |
@@ -117,7 +117,7 @@ Same Chat Hub, **Workflow agents** tab → **NodeBot Builder**. The four suggest
 
 Each one finishes in a few seconds and gives you a real URL like `http://localhost:5678/workflow/<id>` you can click to inspect and activate.
 
-For anything outside those four shapes the agent falls back to n8n's instance-level MCP builder tools (search nodes, validate SDK code, create workflows). It also has helpers for **RAG**, **update/activate/delete**, and **Postgres row triggers**. If you ask for something complex and the small default model struggles, bump the builder model (see [docs/models.md](./docs/models.md)):
+For anything outside those starter shapes the agent falls back to n8n's instance-level MCP builder tools (search nodes, validate SDK code, create workflows). It also has helpers for **RAG**, **update/activate/delete**, **status checks**, **AI call logging**, and **Postgres row triggers**. If you ask for something complex and the small default model struggles, bump the builder model (see [docs/models.md](./docs/models.md)):
 
 ```bash
 echo 'OLLAMA_BUILDER_MODEL=qwen2.5:7b-instruct' >> .env

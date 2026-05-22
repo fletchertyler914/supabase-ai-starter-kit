@@ -1,0 +1,44 @@
+{
+  "name": "Supabase AI Starter Kit",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-20-bullseye",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "dockerDashComposeVersion": "v2"
+    }
+  },
+  "forwardPorts": [4000, 5432, 5678, 6543, 8000, 9000, 9101, 11434],
+  "portsAttributes": {
+    "4000": {
+      "label": "Analytics"
+    },
+    "5678": {
+      "label": "n8n"
+    },
+    "8000": {
+      "label": "Supabase Studio / Kong"
+    },
+    "9000": {
+      "label": "Inbucket"
+    },
+    "9101": {
+      "label": "MinIO"
+    },
+    "11434": {
+      "label": "Ollama"
+    }
+  },
+  "postCreateCommand": "npm install",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-azuretools.vscode-docker",
+        "github.vscode-github-actions",
+        "redhat.vscode-yaml",
+        "denoland.vscode-deno"
+      ]
+    }
+  },
+  "remoteUser": "node"
+}
+

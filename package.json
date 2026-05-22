@@ -1,7 +1,7 @@
 {
   "name": "supabase-ai-starter-kit",
   "version": "1.0.0",
-  "description": "Production-ready Supabase AI infrastructure with Kong API Gateway, n8n workflows, and comprehensive testing suite",
+  "description": "Local-first Supabase AI starter kit with n8n workflows, pgvector RAG, Ollama, Kong, and a tested Docker stack",
   "main": "index.js",
   "scripts": {
     "setup": "./scripts/setup.sh",
@@ -47,6 +47,9 @@
     "starter-kit",
     "kong",
     "n8n",
+    "ollama",
+    "rag",
+    "self-hosted",
     "postgresql",
     "docker",
     "api-gateway",

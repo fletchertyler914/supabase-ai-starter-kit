@@ -1,7 +1,7 @@
 #!/bin/sh
 # Runs inside the n8n-import container. Idempotent and self-healing:
 # - If the marker exists AND every expected workflow ID is present in the n8n DB, skip.
-# - Otherwise, (re-)import credentials + workflows and (re-)activate the listed IDs.
+# - Otherwise, (re-)import credentials + workflows and publish the listed IDs.
 set -eu
 
 MARKER="/home/node/.n8n/.template-seed-complete"
@@ -55,11 +55,11 @@ echo "Importing builder helper workflows (builder-helpers/)..."
 n8n import:workflow --separate --input="$DEMO/workflows/builder-helpers"
 
 if [ -f "$ACTIVATE_FILE" ]; then
-  echo "Activating template workflows from manifest..."
+  echo "Publishing template workflows from manifest..."
   while IFS= read -r wf_id || [ -n "$wf_id" ]; do
     [ -z "$wf_id" ] && continue
-    echo "  -> activate $wf_id"
-    n8n update:workflow --id="$wf_id" --active=true
+    echo "  -> publish $wf_id"
+    n8n publish:workflow --id="$wf_id"
   done < "$ACTIVATE_FILE"
 else
   echo "ERROR: missing $ACTIVATE_FILE"

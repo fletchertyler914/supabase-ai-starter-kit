@@ -1,0 +1,9 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Questions and ideas
+    url: https://github.com/fletchertyler914/supabase-ai-starter-kit/discussions
+    about: Use GitHub Discussions for setup questions, show-and-tell, and open-ended ideas.
+  - name: Security report
+    url: https://github.com/fletchertyler914/supabase-ai-starter-kit/security/advisories/new
+    about: Please report suspected vulnerabilities privately.
+

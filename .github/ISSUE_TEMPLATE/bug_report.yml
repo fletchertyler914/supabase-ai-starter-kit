@@ -1,0 +1,54 @@
+name: Bug report
+description: Report something that is broken or confusing
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please include enough detail for someone to reproduce it from a fresh clone.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the bug and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Run npm run setup
+        2. Open ...
+        3. See ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Paste logs from `npm run health`, `docker compose ps`, or the failing service. Redact secrets.
+      render: shell
+  - type: input
+    id: os
+    attributes:
+      label: OS and Docker versions
+      placeholder: macOS 15, Docker Desktop 4.x, Docker Compose v2.x
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Setup
+        - Docker/Supabase stack
+        - n8n workflows
+        - NodeBot Builder
+        - Ollama/models
+        - RAG/vector search
+        - Documentation
+        - Other
+    validations:
+      required: true
+

@@ -167,9 +167,9 @@ Named volumes (kept until `docker compose down -v`):
   webhook hit. `scripts/validate-workflow-json.sh` now rejects non-UUID
   `versionId` values for shipped workflows; copy `uuidgen` output into the field
   before re-exporting.
-- **n8n 2.x activation requires restart**: `n8n update:workflow --active=true`
-  is deprecated in favor of `n8n publish:workflow --id=<id>`. Either command
-  prints `Changes will not take effect if n8n is running. Please restart n8n`.
+- **n8n 2.x publishing requires restart**: use
+  `n8n publish:workflow --id=<id>` for imported workflows. It prints
+  `Changes will not take effect if n8n is running. Please restart n8n`.
   The kit's `n8n-import` sidecar finishes before `n8n` starts, so a clean
   bootstrap is fine. When you re-import workflows against a running stack, run
   `docker compose restart n8n` afterwards or activation won't be picked up.

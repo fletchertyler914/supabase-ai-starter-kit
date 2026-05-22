@@ -39,3 +39,21 @@ CREATE POLICY "ai_calls_service_all" ON public.ai_calls
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 GRANT SELECT, INSERT ON public.ai_calls TO anon, authenticated, service_role;
+
+CREATE OR REPLACE VIEW public.ai_call_daily_stats AS
+SELECT
+  date_trunc('day', created_at)::date AS day,
+  provider,
+  model,
+  count(*)::integer AS calls,
+  round(avg(latency_ms))::integer AS avg_latency_ms,
+  sum(coalesce(prompt_tokens, 0))::integer AS prompt_tokens,
+  sum(coalesce(completion_tokens, 0))::integer AS completion_tokens,
+  sum(coalesce(cost_usd, 0))::numeric(14, 6) AS cost_usd
+FROM public.ai_calls
+GROUP BY 1, 2, 3
+ORDER BY day DESC, calls DESC;
+
+COMMENT ON VIEW public.ai_call_daily_stats IS 'Daily rollup for local AI usage dashboards.';
+
+GRANT SELECT ON public.ai_call_daily_stats TO anon, authenticated, service_role;

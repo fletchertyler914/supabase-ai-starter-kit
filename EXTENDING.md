@@ -93,7 +93,7 @@ The "AI agent" path (no UI):
   "connections": { "Webhook": { "main": [[{ "node": "Respond", "type": "main", "index": 0 }]] } },
   "settings": { "executionOrder": "v1" }, "staticData": null, "pinData": {},
   "meta": { "templateCredsSetupCompleted": true },
-  "versionId": "<id>-v1", "triggerCount": 0, "tags": []
+  "versionId": "<uuid-v4>", "triggerCount": 0, "tags": []
 }
 ```
 
@@ -308,7 +308,7 @@ When making changes, you can rely on these:
 
 - `docker exec supabase-db psql -U postgres ...` always works against the live local DB.
 - `docker exec n8n n8n list:workflow` lists all workflows by `id|name`.
-- `docker exec n8n n8n update:workflow --id=<id> --active=true` activates a workflow without a restart cycle (n8n then needs a restart to start the trigger).
+- `docker exec n8n n8n publish:workflow --id=<id>` publishes an imported workflow on n8n 2.x; restart n8n when you need webhook or trigger listeners to be reloaded.
 - The n8n `n8n` Postgres schema lives in the same `postgres` database as Supabase. You can `SELECT ... FROM n8n.workflow_entity` and `SELECT ... FROM n8n.chat_hub_agents` directly.
 - The MCP HTTP endpoint at `http://localhost:5678/mcp-server/http` (inside Docker: `http://127.0.0.1:5678/mcp-server/http`) accepts JSON-RPC 2.0 over HTTP with bearer auth. `N8NMcpBearer001` is the canonical credential.
 - All Kong-routed Supabase endpoints accept the anon JWT in `ANON_KEY` from `.env`.
