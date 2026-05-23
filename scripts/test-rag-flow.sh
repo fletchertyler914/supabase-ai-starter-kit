@@ -23,7 +23,14 @@ if [ -f .env ]; then
   done < .env
 fi
 
-info "Checking Ollama + nomic-embed-text..."
+info "Checking Ollama reachable at ${OLLAMA_URL}..."
+if ! curl -sS --max-time 5 "${OLLAMA_URL}/api/tags" >/dev/null 2>&1; then
+  warn "Ollama not reachable at ${OLLAMA_URL} — skipping RAG smoke test."
+  warn "Start Ollama (host install, or 'docker compose --profile cpu up -d ollama-cpu') to exercise this path."
+  exit 0
+fi
+
+info "Checking nomic-embed-text model..."
 if ! curl -sS --max-time 5 "${OLLAMA_URL}/api/tags" | grep -q 'nomic-embed-text'; then
   if command -v ollama >/dev/null 2>&1; then
     ollama pull nomic-embed-text || fail "Could not pull nomic-embed-text"
@@ -39,7 +46,7 @@ pass "nomic-embed-text available"
 info "Ensuring documents table exists (apply migration on running DB if needed)..."
 docker exec -i supabase-db psql -U postgres -d postgres >/dev/null 2>&1 <<'SQL' || true
 \i /docker-entrypoint-initdb.d/migrations/99-vector.sql
-\i /docker-entrypoint-initdb.d/migrations/99-match-documents.sql
+\i /docker-entrypoint-initdb.d/migrations/99-vector_match_documents.sql
 SQL
 
 WF_ACTIVE="$(docker exec supabase-db psql -U postgres -d postgres -t -A -c \
