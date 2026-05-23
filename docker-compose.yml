@@ -497,15 +497,21 @@ services:
       - ./volumes/db/pooler.sql:/docker-entrypoint-initdb.d/migrations/99-pooler.sql:Z
       # Changes required for n8n support
       - ./volumes/db/n8n.sql:/docker-entrypoint-initdb.d/migrations/99-n8n.sql:Z
-      # Enable pgvector extension for vector similarity search.
-      # vector.sql MUST run before match_documents.sql (which references
-      # extensions.vector and public.documents). The 99- vs 100- prefix is
-      # what guarantees that order: same-prefix files sort alphabetically,
-      # so "m" would otherwise run before "v".
+      # Postgres init runs files in /docker-entrypoint-initdb.d/migrations/
+      # in lexicographic (string) order, NOT numeric order. That means a file
+      # prefixed "100-" sorts BEFORE one prefixed "99-" ("1" < "9"), and
+      # within the same "99-" prefix the next character decides the order
+      # ("." < "_" < lowercase letters). Keep everything in the "99-" family
+      # and name the suffixes so the resulting order matches the dependency
+      # order documented below. Verify with `ls -1 | sort` after any change.
+      #
+      # Required order for the AI add-ons:
+      #   99-vector.sql                 -> creates extensions.vector + public.documents
+      #   99-vector_match_documents.sql -> defines match_documents() over public.documents
+      #   99-zz-ai_calls.sql            -> AI call telemetry (independent, runs last)
       - ./volumes/db/vector.sql:/docker-entrypoint-initdb.d/migrations/99-vector.sql:Z
-      - ./volumes/db/match_documents.sql:/docker-entrypoint-initdb.d/migrations/100-match-documents.sql:Z
-      # AI call telemetry (runs after pgvector + match_documents helpers).
-      - ./volumes/db/ai_calls.sql:/docker-entrypoint-initdb.d/migrations/101-ai_calls.sql:Z
+      - ./volumes/db/match_documents.sql:/docker-entrypoint-initdb.d/migrations/99-vector_match_documents.sql:Z
+      - ./volumes/db/ai_calls.sql:/docker-entrypoint-initdb.d/migrations/99-zz-ai_calls.sql:Z
       # Use named volume to persist pgsodium decryption key between restarts
       - db-config:/etc/postgresql-custom
     healthcheck:
