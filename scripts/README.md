@@ -1,319 +1,134 @@
-# Project Utility Scripts
+# Scripts
 
-This directory contains utility scripts for managing and testing the Supabase AI Starter Kit stack.
+Utility scripts for bootstrapping, operating, and validating the Supabase AI Starter Kit stack. Most are wired through `npm run` in [`package.json`](../package.json).
 
-| Script | npm wrapper | Purpose |
+## Quick reference
+
+| Script | npm command | Purpose |
 | --- | --- | --- |
-| `setup.sh` | `npm run setup` | Interactive bootstrap: env, Docker, Ollama (host or container), model pulls, MCP token issuance, full test pass |
-| `start.sh` | `npm start` | Smart start; flags: `--cpu`, `--gpu-nvidia`, `--gpu-amd`, `--dev-email` |
-| `reset.sh` | `npm run reset` | Interactive teardown; `--clear-ollama` wipes models |
-| `tunnel.sh` | `npm run tunnel` | Install + run `cloudflared`, expose stack via Cloudflare Tunnel |
-| `health-check.sh` | `npm run health` / `test:health` | Container + endpoint health |
+| `setup.sh` | `npm run setup` | Interactive bootstrap: `.env`, Docker, Ollama, model pulls, MCP token, full test pass |
+| `start.sh` | `npm start` | Start stack; flags: `--cpu`, `--gpu-nvidia`, `--gpu-amd`, `--dev-email` |
+| `reset.sh` | `npm run reset` | Interactive teardown; `--clear-ollama` removes Ollama model volumes |
+| `tunnel.sh` | `npm run tunnel` | Cloudflare Tunnel for a public demo URL |
+| `health-check.sh` | `npm run health` | Container and endpoint health |
 | `verify-local.sh` | `npm run verify` | CI-like local verification pipeline |
-| `test-auth-complete.js` | `npm run test:auth` | Full signup/signin/confirm/logout flow through Kong |
-| `test-auth-direct.js` | `npm run test:auth:direct` | Same, bypassing Kong (debugging) |
-| `test-auth.js` | `npm run test:auth:basic` | Minimal auth check |
-| `test-database-integration.sh` | `npm run test:db` | DB structure, extensions, JWT, pgvector, roles, n8n schema |
-| `test-n8n-templates.sh` | `npm run test:templates` | Workflow import shape, activation, MCP enabled, helper presence, webhook smoke |
-| `test-n8n-builder-agent.sh` | `npm run test:builder` | MCP endpoint reachable + NodeBot Builder helper/MCP wiring intact |
-| `test-ollama-integration.sh` | `npm run test:ollama` | Real Ollama chat round-trip through the seeded Local Ollama Chat webhook |
+| `backup.sh` | `npm run backup` | `pg_dump` plus n8n/storage tarball under `backups/` |
+| `restore.sh` | `npm run restore` | Restore from a backup created by `backup.sh` |
+| `upgrade-check.sh` | `npm run upgrade:check` | Compare pinned image tags against upstream |
+| `validate-workflow-json.sh` | `npm run validate:workflows` | Validate seeded n8n workflow JSON (also runs in CI) |
+| `test-auth-complete.js` | `npm run test:auth` | Full signup/signin/confirm flow through Kong |
+| `test-auth-direct.js` | `npm run test:auth:direct` | Auth flow bypassing Kong (debugging) |
+| `test-auth.js` | `npm run test:auth:basic` | Minimal auth smoke test |
+| `test-database-integration.sh` | `npm run test:db` | DB schemas, extensions, JWT, pgvector, RAG helpers, n8n schema |
+| `test-n8n-templates.sh` | `npm run test:templates` | Workflow import, activation, MCP, builder/console shape, webhook smoke |
+| `test-n8n-builder-agent.sh` | `npm run test:builder` | MCP endpoint and NodeBot Builder wiring |
+| `test-n8n-builder-e2e.sh` | `npm run test:builder:e2e` | Builder workflow end-to-end smoke test |
+| `test-rag-flow.sh` | `npm run test:rag` | RAG ingest + query through n8n webhooks |
+| `test-ollama-integration.sh` | `npm run test:ollama` | Ollama chat round-trip through seeded webhook |
+| `test-edge-functions.sh` | `npm run test:edge` | Edge function smoke tests |
 
-## Available Scripts
-
-### 🚀 `setup.sh` — interactive bootstrap (start here)
-
-**Purpose:** One-command onboarding for new users.
-
-- Verifies Docker Desktop is running.
-- Detects Ollama (host vs containerized) and offers to start the containerized profile if needed.
-- Creates `.env` from `.env.example` when missing.
-- Pulls `OLLAMA_MODEL` / `OLLAMA_DEFAULT_MODELS` (chat) and `OLLAMA_BUILDER_MODEL` (NodeBot Builder).
-- Starts the full stack via `./scripts/start.sh`.
-- Once the first n8n owner account exists, issues an MCP access token, writes it to `.env` (`N8N_MCP_ACCESS_TOKEN`), re-encrypts the seeded `N8NMcpBearer001` credential with the new token, and restarts n8n so the credential is picked up.
-- Runs the full `npm test` suite end-to-end.
-- Opens n8n in your browser.
-
-**Usage:**
+## Start here
 
 ```bash
 npm run setup
 ```
 
-Re-run any time after creating the first n8n owner account, after changing `OLLAMA_BUILDER_MODEL`, or after rotating `N8N_MCP_ACCESS_TOKEN`.
+`setup.sh` checks Docker, configures `.env`, detects or starts Ollama, pulls chat and builder models, starts the stack, seeds workflows, issues an n8n MCP token after the first owner account exists, runs `npm test`, and opens n8n.
 
-### 🌐 `tunnel.sh` — public URL via Cloudflare
+Re-run after creating your first n8n owner, after changing `OLLAMA_BUILDER_MODEL`, or after rotating `N8N_MCP_ACCESS_TOKEN`.
 
-**Purpose:** Get an HTTPS public URL for the local stack without opening router ports.
-
-- Installs `cloudflared` if missing (Homebrew on macOS, apt/curl elsewhere).
-- Walks you through `cloudflared login`.
-- Starts a named tunnel that proxies `https://<your-subdomain>.<your-domain>` to `http://localhost:8000` (Kong) and `http://localhost:5678` (n8n).
-
-**Usage:**
+## Lifecycle
 
 ```bash
-npm run tunnel
+npm start              # ./scripts/start.sh
+npm stop               # docker compose down
+npm run restart
+npm run reset          # interactive; preserves Ollama models unless --clear-ollama
+npm run logs
+npm run tunnel         # public HTTPS demo via Cloudflare
 ```
 
-See [`DEPLOY.md`](../DEPLOY.md) for the full deployment matrix.
-
-### 🔐 Authentication Test Scripts
-
-#### `test-auth-complete.js`
-
-**Purpose:** Comprehensive end-to-end authentication flow testing
-
-- Tests complete signup, signin, and user profile workflows
-- Validates email confirmation flow
-- Tests protected API access with authentication
-- Verifies Kong API gateway routing for auth endpoints
-- Includes session management and logout testing
-
-#### `test-auth-direct.js`
-
-**Purpose:** Direct authentication service testing (bypassing Kong)
-
-- Tests auth service directly on internal port
-- Useful for debugging authentication issues
-- Bypasses API gateway for isolated auth testing
-- Validates core auth functionality without routing complexity
-
-#### `test-auth.js`
-
-**Purpose:** Basic authentication functionality testing
-
-- Simple signup and signin flow testing
-- Quick verification of core auth endpoints
-- Lightweight testing for basic auth validation
-
-**Usage:**
+Compose overlays (see [`docker/`](../docker/)):
 
 ```bash
-# Test complete authentication flow (recommended)
-node scripts/test-auth-complete.js
-
-# Test auth service directly (debugging)
-node scripts/test-auth-direct.js
-
-# Basic auth testing
-node scripts/test-auth.js
+npm run dev            # base + dev overlay
+npm run dev:email      # base + Inbucket
+npm run dev:s3         # base + MinIO
+npm run dev:full       # base + dev + email + S3
 ```
 
-**Prerequisites:**
+## Validation
 
-- Docker stack must be running
-- Email service must be configured (for test-auth-complete.js)
-- .env file with proper auth configuration
-
-### 🧪 `test-database-integration.sh`
-
-**Purpose:** Comprehensive database integration testing
-
-- Tests database structure and schema organization
-- Verifies all extensions are installed and working
-- Checks JWT configuration and authentication setup
-- Tests vector functionality (pgvector)
-- Validates n8n integration
-- Tests database connectivity and roles
-- Includes idempotency testing
-
-**Usage:**
+Default suite (`npm test`):
 
 ```bash
-./scripts/test-database-integration.sh
+npm run test:health
+npm run test:auth
+npm run test:db
+npm run test:templates
+npm run test:rag
+npm run test:ollama
 ```
 
-**Prerequisites:**
-
-- Docker stack must be running (`docker compose up`)
-- Database service must be healthy
-
-### 🏥 `health-check.sh`
-
-**Purpose:** System health monitoring and service verification
-
-- Checks all Docker services are running and healthy
-- Tests service endpoints and connectivity
-- Verifies database connections
-- Monitors service health status with color-coded results
-- Tests API gateway routing and authentication
-- Validates n8n web interface accessibility
-
-**Usage:**
+Individual checks:
 
 ```bash
-./scripts/health-check.sh
+npm run validate:workflows
+npm run test:builder
+npm run test:builder:e2e
+npm run test:edge
+npm run verify           # broader CI-like pipeline
+npm run upgrade:check
 ```
 
-**Prerequisites:**
+**Ollama-dependent tests:** `test:rag` and `test:ollama` exit successfully with a warning when Ollama is not reachable at `http://localhost:11434`. That keeps CI and Ollama-less local runs green while still exercising the full path when Ollama is running (host install or `docker compose --profile cpu up -d ollama-cpu`).
 
-- Docker stack must be running (`docker compose up`)
-- .env file must be present with required API keys
+## Backup and restore
 
-### 🚀 `start.sh`
-
-**Purpose:** Intelligent stack startup with development options
-
-- Detects and starts appropriate Docker Compose configuration
-- Handles development vs production startup automatically
-- Manages network connectivity for services
-- Provides startup validation and health checks
-- Supports both basic and advanced development modes
-
-**Usage:**
+Workflow and credential data live in Postgres (`n8n` schema) and on disk under `volumes/`. Use backups before major upgrades or destructive resets.
 
 ```bash
-./scripts/start.sh
+npm run backup         # writes timestamped artifacts under backups/
+npm run restore        # interactive restore from a prior backup
 ```
 
-### 🔄 `reset.sh`
-
-**Purpose:** Complete stack reset and cleanup
-
-- Stops all running containers
-- Cleans up Docker volumes and networks
-- Resets database to initial state
-- Clears persistent storage and logs (`volumes/db/data`, `volumes/storage`, `volumes/n8n`)
-- Provides fresh startup environment
-- Includes safety prompts and confirmation
-- `--clear-ollama` also removes the Ollama models volume (otherwise Ollama models are preserved)
-
-**Usage:**
+## Auth tests
 
 ```bash
-./scripts/reset.sh [options]
-./scripts/reset.sh --clear-ollama   # nuke Ollama models too
+npm run test:auth          # recommended end-to-end flow
+npm run test:auth:direct   # auth service only
+npm run test:auth:basic    # minimal check
 ```
 
-### 🧪 n8n template, builder, and Ollama tests
+Requires the stack running and `.env` configured. `test:auth` expects the dev email overlay (`npm run dev:email` or `npm run dev:full`) for confirmation links.
 
-#### `test-n8n-templates.sh`
+## n8n and workflow tests
 
-**Purpose:** End-to-end import + shape check for seeded n8n workflows.
+- **`test-n8n-templates.sh`** — Confirms 17 seeded workflows import and activate, NodeBot Builder and AI Starter Console agent shapes, MCP enabled, bootstrap sharing, and health/index webhook smoke tests.
+- **`test-n8n-builder-agent.sh`** — MCP `tools/list` and NodeBot Builder readiness; warns (does not fail) if no MCP token yet.
+- **`test-n8n-builder-e2e.sh`** — Drives builder paths against a running stack.
+- **`validate-workflow-json.sh`** — Static JSON validation for seed files under `n8n/demo-data/workflows/`.
 
-- Confirms `n8n-import` wrote the seed marker.
-- Asserts all 17 workflows are present in the n8n DB (6 user-facing templates + 11 builder helpers).
-- Verifies the workflows listed in `workflow-ids.activate` are active.
-- Asserts the NodeBot Builder agent JSON has exactly 9 `toolWorkflow` nodes wired to the helper IDs.
-- Asserts the AI Starter Console has its 3 helper tools wired correctly.
-- Hits `POST /webhook/template-supabase-health` and `GET /webhook/template-kit-index` and asserts their response shapes.
-- Runs as part of `npm test`.
+See [`n8n/README.md`](../n8n/README.md) and [`templates/README.md`](../templates/README.md) for workflow IDs and template behavior.
 
-#### `test-n8n-builder-agent.sh`
+## When to run what
 
-**Purpose:** Confirm NodeBot Builder is ready to chat.
+| Situation | Command |
+| --- | --- |
+| First clone | `npm run setup` |
+| After stack start | `npm run health` |
+| After DB or migration changes | `npm run test:db` |
+| After workflow JSON edits | `npm run validate:workflows` && `npm run test:templates` |
+| Before opening a PR | `npm test` (or `npm run verify` for broader coverage) |
+| Before upgrade | `npm run upgrade:check` && `npm run backup` |
 
-- Reads `N8N_MCP_ACCESS_TOKEN` from `.env`; if missing, falls back to `n8n.user_api_keys` in Postgres.
-- Posts `tools/list` to `http://localhost:5678/mcp-server/http` with that token and asserts a 200 response that includes `create_workflow_from_code`.
-- Asserts the NodeBot Builder workflow (`d4e5f6a7b8c9012345678901234abcd`) is active in `n8n.workflow_entity`.
-- Asserts the `N8NMcpBearer001` credential exists in `n8n.credentials_entity` and is shared.
-- Exits 0 with a warning (not failure) if no MCP token exists yet — run `npm run setup` after creating the first n8n owner.
+## Prerequisites
 
-#### `test-ollama-integration.sh`
+- Docker Desktop (or Docker Engine) running
+- Node.js 18+ (for npm scripts and auth tests only; no npm dependencies to install)
+- Ollama on the host or via Compose profile for full RAG/Ollama test coverage
 
-**Purpose:** Real LLM round-trip.
+## Exit codes
 
-1. Checks Ollama is reachable at `OLLAMA_HOST_URL` (defaults to `http://localhost:11434`).
-2. Ensures `OLLAMA_MODEL` is present locally (pulls if missing).
-3. Calls Ollama `/api/chat` directly with a real prompt and asserts a non-empty response.
-4. Verifies the `n8n` container can reach Ollama from inside Docker.
-5. Drives the seeded Local Ollama Chat template via its public webhook and asserts the streamed output is non-empty.
-
-Fails fast if Ollama isn't reachable — start Ollama first, or use the `--cpu` / `--gpu-*` profiles.
-
-## When to Run These Scripts
-
-### During Development
-
-- **After starting the stack:** Run `health-check.sh` to verify everything is up
-- **After database changes:** Run `test-database-integration.sh` to verify DB integrity
-- **Before committing changes:** Run both scripts to ensure no regressions
-- **n8n workflows:** All data persists automatically in Supabase database ✨
-
-### Troubleshooting
-
-- **Services not responding:** Use `health-check.sh` to identify which services are failing
-- **Database issues:** Use `test-database-integration.sh` to pinpoint DB problems
-- **After stack restart:** Run both scripts to verify full functionality
-
-### Production/Staging
-
-- **After deployment:** Run both scripts to verify successful deployment
-- **Regular monitoring:** Schedule `health-check.sh` to run periodically
-- **Before maintenance:** Run scripts to establish baseline health
-
-### n8n Workflow Management
-
-- **All workflows and credentials persist in Supabase database** - No backups needed! ✨
-- **Initial setup:** Uses `n8n/demo-data/` for seeding workflows on first run
-- **Reset to defaults:** Use `./reset.sh` to restore initial demo-data state
-- **After git pull/merge:** If demo-data changed, restart stack to import new workflows
-
-## Script Features
-
-Both scripts include:
-
-- ✅ **Beautiful colored output** for easy reading and quick status identification
-- 🎯 **Smart status detection** - different colors for success, warnings, errors, and info
-- ⚡ **Fast execution** with efficient testing
-- 🛑 **Fail-fast behavior** - stops on first critical error
-- 📊 **Detailed reporting** of test results with clear explanations
-- 🔄 **Idempotency testing** where applicable
-- 🕐 **Timestamps** for tracking when tests were run
-
-### Color Coding System
-
-- **🟢 Green (✅):** Successful tests, healthy services, expected results
-- **🔵 Blue (ℹ️):** Informational messages, running services without health checks
-- **🟡 Yellow (⚠️):** Warnings, services that may be initializing, non-critical issues
-- **🔴 Red (❌):** Errors, failed tests, critical issues requiring attention
-
-## Extending the Scripts
-
-To add new tests:
-
-1. Follow the existing pattern of numbered tests
-2. Use the `print_status` function for consistent colored output:
-   - `print_status "success" "Message"` for green checkmarks
-   - `print_status "error" "Message"` for red X marks
-   - `print_status "warning" "Message"` for yellow warnings
-   - `print_status "info" "Message"` for blue information
-3. Include both success and failure cases
-4. Add meaningful error messages with expected vs actual results
-5. Update this README with new functionality
-
-## Exit Codes
-
-- **0:** All tests passed successfully
-- **1:** Critical failure (service down, database issue, etc.)
-
-## Example Output
-
-```bash
-🔍 Docker Stack Health Check
-==============================
-🕐 Sun Jun 29 09:44:45 CDT 2025
-
-✅ Environment variables loaded
-
-ℹ️ Checking Docker services...
-✅ All services running (14/14)
-
-ℹ️ Service Health Status:
-
-✅ realtime: Up 16 minutes (healthy)
-✅ analytics: Up 16 minutes (healthy)
-ℹ️ n8n: Up 16 minutes
-✅ auth: Up 16 minutes (healthy)
-
-ℹ️ Testing Endpoint Connectivity...
-
-✅ Kong API Gateway (8000): 401 (auth required - expected)
-✅ n8n Web Interface (5678): 200
-✅ Analytics Service (4000): 200
-
-# ... more tests ...
-
-✅ 🎉 All services are healthy and authentication is working correctly!
-🕐 Health check completed at: Sun Jun 29 09:44:45 CDT 2025
-```
+- **0** — success (including intentional Ollama skips)
+- **1** — failure; scripts print actionable errors before exiting

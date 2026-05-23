@@ -373,9 +373,12 @@ For security-sensitive reports, see [SECURITY.md](./SECURITY.md). For release no
 
 ## Built By
 
-Built by [Tyler Fletcher](https://github.com/fletchertyler914) for builders who would rather ship AI products than babysit infrastructure glue.
+Built by [Tyler Fletcher](https://github.com/fletchertyler914) — I like wiring up local AI stacks, n8n workflows, and tools that are fun to tinker with. This repo is the starter kit I kept reaching for when experimenting with self-hosted Supabase, pgvector RAG, and chat-driven workflow building.
 
-If this saves you setup time, star the repo, open an issue with what broke, or share what you build with it.
+If you try it, I'd love to hear what you build, what broke, or what template you'd want next. Stars and issues help; so does sharing a screenshot or fork.
+
+- GitHub: [fletchertyler914](https://github.com/fletchertyler914)
+- Repo issues: [open an issue](https://github.com/fletchertyler914/supabase-ai-starter-kit/issues)
 
 ## License
 

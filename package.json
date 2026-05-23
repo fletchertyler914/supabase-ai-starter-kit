@@ -1,6 +1,6 @@
 {
   "name": "supabase-ai-starter-kit",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Local-first Supabase AI starter kit with n8n workflows, pgvector RAG, Ollama, Kong, and a tested Docker stack",
   "main": "index.js",
   "scripts": {
@@ -58,7 +58,7 @@
     "vector-database",
     "pgvector"
   ],
-  "author": "Supabase AI Starter Kit",
+  "author": "Tyler Fletcher <fletchertyler914@yahoo.com> (https://github.com/fletchertyler914)",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
