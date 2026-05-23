@@ -497,10 +497,14 @@ services:
       - ./volumes/db/pooler.sql:/docker-entrypoint-initdb.d/migrations/99-pooler.sql:Z
       # Changes required for n8n support
       - ./volumes/db/n8n.sql:/docker-entrypoint-initdb.d/migrations/99-n8n.sql:Z
-      # Enable pgvector extension for vector similarity search
+      # Enable pgvector extension for vector similarity search.
+      # vector.sql MUST run before match_documents.sql (which references
+      # extensions.vector and public.documents). The 99- vs 100- prefix is
+      # what guarantees that order: same-prefix files sort alphabetically,
+      # so "m" would otherwise run before "v".
       - ./volumes/db/vector.sql:/docker-entrypoint-initdb.d/migrations/99-vector.sql:Z
-      - ./volumes/db/match_documents.sql:/docker-entrypoint-initdb.d/migrations/99-match-documents.sql:Z
-      # AI call telemetry (run after pgvector helpers; basename sorts after match-documents)
+      - ./volumes/db/match_documents.sql:/docker-entrypoint-initdb.d/migrations/100-match-documents.sql:Z
+      # AI call telemetry (runs after pgvector + match_documents helpers).
       - ./volumes/db/ai_calls.sql:/docker-entrypoint-initdb.d/migrations/101-ai_calls.sql:Z
       # Use named volume to persist pgsodium decryption key between restarts
       - db-config:/etc/postgresql-custom
